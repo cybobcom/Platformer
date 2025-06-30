@@ -1,0 +1,493 @@
+@import url("/data/template/css/bootstrap-icons.css?test");
+
+/* barlow-100 - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: normal;
+    font-weight: 100;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-100.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-100italic - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: italic;
+    font-weight: 100;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-100italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-200 - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: normal;
+    font-weight: 200;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-200.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-200italic - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: italic;
+    font-weight: 200;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-200italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-300 - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: normal;
+    font-weight: 300;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-300.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-300italic - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: italic;
+    font-weight: 300;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-300italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-regular - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-regular.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-italic - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: italic;
+    font-weight: 400;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-500 - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: normal;
+    font-weight: 500;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-500.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-500italic - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: italic;
+    font-weight: 500;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-500italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-600 - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: normal;
+    font-weight: 600;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-600.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-600italic - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: italic;
+    font-weight: 600;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-600italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-700 - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: normal;
+    font-weight: 700;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-700.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-700italic - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: italic;
+    font-weight: 700;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-700italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-800 - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: normal;
+    font-weight: 800;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-800.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-800italic - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: italic;
+    font-weight: 800;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-800italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-900 - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: normal;
+    font-weight: 900;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-900.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* barlow-900italic - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Barlow';
+    font-style: italic;
+    font-weight: 900;
+    src: url('/data/template/fonts/barlow/barlow-v12-latin-900italic.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+
+
+
+
+body {
+    position: relative;
+    float: left;
+    width: 100%;
+    height: 100vh;
+    /*overflow: hidden;*/
+
+    min-height: -webkit-fill-available;
+
+}
+
+header {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+    right: 0;
+
+    /*display: none;*/
+    background: white;
+    /*background: #e3e3e3;*/
+    /*padding: 20px;*/
+
+    box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.1);
+
+    z-index: 122;
+
+}
+
+header h2 {
+    position: relative;
+    /*width: fit-content;*/
+    /*padding-left: 60px;*/
+}
+
+
+header .rounded-pill {
+    position: relative !important;
+    /*float: right;*/
+    /*margin-left: 30px;*/
+}
+@media (max-width: 1199.98px) {
+    header .rounded-pill {
+        margin-left: 27px !important;
+    }
+}
+@media (max-width: 991.98px) {
+    header h2 {
+        font-size: calc(1.125rem + .9vw);
+    }
+    header .rounded-pill {
+        top: -10px !important;
+        right: 10px !important;
+    }
+}
+
+
+.btn-light {
+    background-color: #F6F6F6;
+}
+
+#chat-container {
+    border: none !important;
+    border-radius: 0 !important;
+    /*padding: 0 0 140px !important;*/
+}
+
+@media (max-width: 767.98px) {
+    #chat-container {
+        /*position: relative;*/
+        /*padding: 0 !important;*/
+        /*max-height: 650px !important;*/
+    }
+}
+
+@media (max-width: 767.98px) {
+    #chat-container {
+        /*max-height: 100% !important;*/
+        /*padding-bottom: 75px !important;*/
+
+    }
+    .col-md-8:has(#chat-container) {
+        /*max-height: calc(100vh - 230px) !important;*/
+        /*margin-top: 80px;*/
+    }
+}
+
+#chat-form {
+    /*position: absolute;*/
+    /*bottom: 0;*/
+    /*left: 50%;*/
+    /*transform: translateX(-50%);*/
+    /*width: calc(100% - 3rem);*/
+    /*padding: 1rem;*/
+    background: white;
+    z-index: 999;
+    /*height: 122px;*/
+}
+
+@media (max-width: 767.98px) {
+    #chat-form {
+        /*width: 100%;*/
+    }
+}
+
+#chat-form #user-message {
+    background: #F6F6F6;
+    border: none;
+}
+
+#chat-form small {
+    position: relative;
+    float: left;
+    margin-top: .5rem;
+}
+
+#chat-form #user-message {
+    border-bottom-left-radius: 6px;
+    border-top-left-radius: 6px;
+    padding: .75rem;
+}
+
+#chat-form #user-message:focus {
+    box-shadow: none;
+}
+
+#chat-form .dropdown-menu {
+    padding: 0;
+    overflow: hidden;
+}
+
+#chat-form .dropdown-menu .dropdown-item {
+    padding: .5rem .75rem;
+}
+
+#chat-form .dropdown-menu .dropdown-item:active {
+    background: #000 !important;
+}
+
+.user {
+    background: #afca10 !important;
+    font-weight: 300 !important;
+    border-radius: 6px !important;
+    position: relative;
+    /*margin-right: 50px;*/
+}
+
+
+
+#chat-container .assistant {
+    border-radius: 6px !important;
+    position: relative;
+    /*margin-left: 60px;*/
+}
+
+
+
+#chat-container .assistant strong {
+    font-weight: 700;
+}
+
+#chat-container .assistant span {
+    font-weight: 300;
+}
+
+#chat-container .assistant a {
+    color: #afca10;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+#chat-container .assistant .text-end {
+    opacity: .5;
+    margin-bottom: .5rem;
+}
+
+@media (max-width: 767.98px) {
+    #chat-container .assistant {
+        margin-right: 50px;
+    }
+    #chat-container .user {
+        margin-left: 50px;
+    }
+}
+
+small {
+    font-size: 0.7em;
+}
+
+
+
+
+
+body {
+    font-family: "Barlow", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+
+    padding: 0px;
+
+    -webkit-font-smoothing: antialiased;
+}
+
+h2 {
+    font-weight: 500;
+    font-style: normal;
+
+}
+
+@media (max-width: 576.98px) {
+    h2 {
+        font-size: calc(1.125rem + .9vw);
+    }
+}
+
+#chat-container {
+    /*max-height: 400px;*/
+    overflow-y: scroll;
+}
+
+.user {
+    font-weight: bold;
+    color: white;
+    background-color: #afca10;
+    padding: 16px;
+    margin-left: 75px;
+    margin-bottom: 16px;
+    border-radius: 16px;
+}
+
+.assistant {
+    font-weight: normal;
+    color: black;
+    background-color: #F6F6F6;
+    padding: 16px;
+    margin-right: 75px;
+    margin-bottom: 16px;
+    border-radius: 16px;
+}
+
+
+.btn-primary {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: #afca10;
+    --bs-btn-border-color: #afca10;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #afca10;
+    --bs-btn-hover-border-color: #afca10;
+    --bs-btn-focus-shadow-rgb: 49, 132, 253;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #afca10;
+    --bs-btn-active-border-color: #afca10;
+    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: #afca10;
+    --bs-btn-disabled-border-color: #afca10;
+}
+
+
+.copy-icon {
+    cursor: pointer;
+}
+
+.copied-icon {
+    color: green; /* Ändere die Farbe des Icons, um es zu markieren */
+}
+
+.classid_infopoint_role_system {
+    font-size: 12px;
+    color: lightgray;
+    padding: 2px;
+    display: inline-block;
+    /* float: right; */
+    position: absolute;
+}
+
+.ajax_loader:before {
+    content: "\F5D4";
+    color: gray;
+    font-family: "bootstrap-icons";
+    font-size: 24px;
+    margin: 20px;
+
+
+    display: inline-block;
+    font-family: bootstrap-icons !important;
+    font-style: normal;
+    font-weight: normal !important;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    vertical-align: -.125em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    animation: ajax_loader_spinner .6s linear infinite;
+}
+
+@keyframes ajax_loader_spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+#myDropdown {
+    /*position: absolute;*/
+    bottom:50px;
+}
+
+@media (max-width: 450.98px) {
+
+    .dropdown-menu {
+        margin-left: 10px !important;
+
+    }
+}
+
+
+.classid_container_content {
+    position: absolute;
+    top: 80px;
+    left:0;
+    right: 0;
+    bottom: 80px;
+    /*background-color: #eeffff;*/
+    overflow: scroll;
+}
+@media (max-width: 450.98px) {
+    .classid_container_content {
+        /*bottom: 200px;*/
+        /*bottom: calc(env(safe-area-inset-bottom, -300px ) + 200px);*/
+    }
+}
+
+.classid_chatdisclaimer{
+    color:#999;
+}
+
+.classid_chatdisclaimer a {
+    color:#999;
+
+}

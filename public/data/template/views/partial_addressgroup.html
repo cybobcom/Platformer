@@ -1,0 +1,18 @@
+<?php
+
+
+$f = file_get_contents("###CAPPS###modules/addressgroup/views/main.php");
+$f = parseTemplate($f,array());
+echo $f;
+
+
+
+?>
+<cb:easyadmin>
+name|Name|input
+</cb:easyadmin>
+
+<cb:localization>
+    name|1|NDEName
+    name|2|INTName
+</cb:localization>

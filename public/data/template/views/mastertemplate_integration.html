@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo CONFIGURATION["plattform_name"]; ?></title>
+
+    <link rel="stylesheet" href="<?php echo BASEURL; ?>data/template/css/bootstrap.min.css">
+    <link rel="stylesheet" href="<?php echo BASEURL; ?>data/template/css/prism.css">
+<!--    <link rel="stylesheet" href="<?php echo BASEURL; ?>data/template/css/frontend.css?<?php echo time(); ?>">-->
+
+    <style>
+        @import url("<?php echo BASEURL; ?>data/template/css/bootstrap-icons.css?test");
+    </style>
+
+    <script>
+
+    </script>
+
+</head>
+<body>
+
+
+
+    <header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
+        <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none">
+            <svg class="bi me-2" width="40" height="32"><use xlink:href="#bootstrap"></use></svg>
+            <span class="fs-4">Simple header</span>
+        </a>
+
+        <ul class="nav nav-pills">
+            <li class="nav-item"><a href="#" class="nav-link active" aria-current="page">Home</a></li>
+            <li class="nav-item"><a href="#" class="nav-link">Features</a></li>
+            <li class="nav-item"><a href="#" class="nav-link">Pricing</a></li>
+            <li class="nav-item"><a href="#" class="nav-link">FAQs</a></li>
+            <li class="nav-item"><a href="#" class="nav-link">About</a></li>
+        </ul>
+    </header>
+
+
+<main>
+    <div class="container" >
+        <div class="row">
+            <div class="col-md-12">
+
+                ###part_content###
+
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
+    <div class="col-md-4 d-flex align-items-center">
+        <a href="/" class="mb-3 me-2 mb-md-0 text-body-secondary text-decoration-none lh-1">
+            <svg class="bi" width="30" height="24"><use xlink:href="#bootstrap"></use></svg>
+        </a>
+        <span class="mb-3 mb-md-0 text-body-secondary">© 2025 Company, Inc</span>
+    </div>
+
+    <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
+        <li class="ms-3"><a class="text-body-secondary" href="#"><svg class="bi" width="24" height="24"><use xlink:href="#twitter"></use></svg></a></li>
+        <li class="ms-3"><a class="text-body-secondary" href="#"><svg class="bi" width="24" height="24"><use xlink:href="#instagram"></use></svg></a></li>
+        <li class="ms-3"><a class="text-body-secondary" href="#"><svg class="bi" width="24" height="24"><use xlink:href="#facebook"></use></svg></a></li>
+    </ul>
+</footer>
+
+
+<script src="<?php echo BASEURL; ?>data/template/js/bootstrap.bundle.min.js"></script>
+<script src="<?php echo BASEURL; ?>data/template/js/jquery.min.js"></script>
+<script src="<?php echo BASEURL; ?>data/template/js/prism.js"></script>
+
+<script>
+
+    //
+    var BASEURL = '<?php echo BASEURL; ?>';
+    var SESSION = URL.createObjectURL(new Blob([])).slice(-36);
+
+    //
+    var globalDetailModal = new bootstrap.Modal(document.getElementById('detailModal'), {
+        backdrop: 'static',
+        keyboard: false
+    });
+    var globalPrivacyModal = new bootstrap.Modal(document.getElementById('privacyModal'), {
+        backdrop: 'static',
+        keyboard: false
+    });
+
+    //
+    var tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    var tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
+    //
+    const dropdownElementList = document.querySelectorAll('.dropdown-toggle')
+    const dropdownList = [...dropdownElementList].map(dropdownToggleEl => new bootstrap.Dropdown(dropdownToggleEl))
+
+
+
+
+
+</script>
+</body>
+</html>

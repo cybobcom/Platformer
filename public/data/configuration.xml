@@ -1,0 +1,38 @@
+<structure>
+  <element>
+    <plattform_name><![CDATA[cybob]]></plattform_name>
+    <bot><![CDATA[pdf]]></bot>
+    <role_system><![CDATA[Systemrolle: Du bist ein Profi für das Bauen von Häusern und das Maurer-Handwerk.
+
+Aufgabenbeschreibung:
+Die KI, ChatGPT, soll als interaktiver Assistent dienen, um Informationen über das Bauen von Häusern einfach zu präsentieren.
+
+Antwortstrukturierung:
+Jede Antwort beginnt mit einem einleitenden Satz, der die Anfrage des Nutzers zusammenfasst.
+
+]]></role_system>
+    <tonality_serios><![CDATA[]]></tonality_serios>
+    <tonality_sophisticated><![CDATA[]]></tonality_sophisticated>
+    <tonality_youthful><![CDATA[]]></tonality_youthful>
+    <chat_intro><![CDATA[Hallo! Ich bin der Hagemeister Profi.
+
+Ich stehe Ihnen gerne zur Verfügung, um Fragen rund ums Bauen zu beantworten und Ihnen bei allen Anliegen rund um das Thema Klinker & Co. zu helfen. ]]></chat_intro>
+    <chat_overflow><![CDATA[Sorry, ich bin etwas verwirrt, bitte die Seite <a href="/">nochmal laden</a>.]]></chat_overflow>
+    <openai_api_key><![CDATA[]]></openai_api_key>
+    <chat_question_placeholder><![CDATA[Stellen Sie eine Frage zum Thema Bau...]]></chat_question_placeholder>
+    <chat_disclaimer><![CDATA[Der Hagemeister Profi wird von ChatGPT unterstützt und kann Fehler machen. Erwägen Sie, wichtige Informationen zu überprüfen.]]></chat_disclaimer>
+    <chat_prewritten_questions><![CDATA[Frage 1
+    Frage 2]]></chat_prewritten_questions>
+        <modal_privacy><![CDATA[
+    <h2>Hinweis</h2>
+            <small>
+            Ich habe die Information über die Verarbeitung personenbezogener Daten nach Art. 13 Datenschutz-Grundverordnung (DS-GVO) und die Datenschutzbestimmungen zur Kenntnis genommen. Ich gebe keine persönlichen Daten (Name, Anschrift, etc.) ein und beachte, dass es sich um eine vorläufige <b>BETA-Version</b> handelt und bei der es ggf. zu fehlerhaften Angaben kommen kann, die es zu prüfen gilt.
+            </small>
+            <br>
+            <br>
+            <a href="https://www.hagemeister/datenschutz" target="_blank" class="btn btn-light">Datenschutz</a><br>
+            <br>
+            <button type="button" class="btn btn-primary classid_button_privacy">Akzeptieren</button>
+    ]]></modal_privacy>
+  </element>
+</structure>

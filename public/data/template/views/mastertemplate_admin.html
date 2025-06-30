@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>###structure_name###</title>
+
+    <link rel="stylesheet" href="###BASEURL###data/template/css/bootstrap.min.css?###RANDOM###">
+    <link rel="stylesheet" href="###BASEURL###data/template/css/plattform.css?###RANDOM###">
+    <link rel="stylesheet" href="###BASEURL###data/template/css/private.css?###RANDOM###">
+
+    <script src="###BASEURL###data/template/js/bootstrap.bundle.min.js?###RANDOM###"></script>
+    <script src="###BASEURL###data/template/js/jquery.min.js?###RANDOM###"></script>
+    <script src="###BASEURL###data/template/js/chart.js"></script>
+    <script src="###BASEURL###data/template/js/vue.global.prod.min.js"></script>
+    <script src="###BASEURL###data/template/js/axios.min.js"></script>
+
+    <script src="###BASEURL###data/template/js/private.js?###RANDOM###"></script>
+
+</head>
+<body>
+
+
+
+
+<div class="container-fluid">
+    <div class="row">
+
+        <cb:check loggedin="1">
+        <div class="col-sm-auto bg-dark sticky-top side_navigation">
+
+            <div class="d-flex flex-md-column flex-row flex-nowrap bg-dark align-items-center sticky-top" style="position: fixed;">
+
+                <ul class="nav nav-pills nav-flush flex-md-column flex-row flex-nowrap mb-auto mx-auto text-center align-items-center">
+
+
+                    <cb:navigation
+                            entry="2"
+                            highlightDEVPath="1"
+                            level1="<li><a href='###LINK###' class='nav-link py-2 px-0 ###page_data_icon### side_navigation_icon' data-toggle='tooltip' data-bs-placement='right' title='###page_name###'></a></li>"
+                            level1_selected="<li><a href='###LINK###' class='nav-link py-2 px-0 ###page_data_icon### side_navigation_icon_selected' data-toggle='tooltip' data-bs-placement='right' title='###page_name###'></a></li>"
+                            level2="<li><a href='###LINK###' class='nav-link py-2 px-0 ###page_data_icon### side_navigation_icon' data-toggle='tooltip' data-bs-placement='right' title='###page_name###'></a></li>"
+                            level2_selected="<li><a href='###LINK###' class='nav-link py-2 px-0 ###page_data_icon### side_navigation_icon_selected' data-toggle='tooltip' data-bs-placement='right' title='###page_name###'></a></li>"
+                    />
+
+                </ul>
+                <!--
+                                <div class="dropdown">
+                                    <a href="#" class="d-flex align-items-center justify-content-center p-3 link-dark text-decoration-none dropdown-toggle" id="dropdownUser3" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi-person-circle h2"></i>
+                                    </a>
+                                    <ul class="dropdown-menu text-small shadow" aria-labelledby="dropdownUser3">
+                                        <li><a class="dropdown-item" href="#">New project...</a></li>
+                                        <li><a class="dropdown-item" href="#">Settings</a></li>
+                                        <li><a class="dropdown-item" href="#">Profile</a></li>
+                                    </ul>
+                                </div>
+                -->
+
+
+
+                <!--
+                                <div class="side_navigation" style="display: none;">
+                                <navigation
+                                highlightPath="1"
+                                level1="<a href='###LINK###' class='###page_data_icon### side_navigation_icon' data-toggle='tooltip' data-placement='right' title='###page_name###'></a><br>"
+                                level1_selected="<a href='###LINK###' class='###page_data_icon### side_navigation_icon_selected' data-toggle='tooltip' data-placement='right' title='###page_name###'></a><br>"
+                                 />
+                                </div>
+                -->
+
+            </div>
+
+
+            <div class="text-center align-items-center " style="position: fixed; bottom: 0; width: 16px; margin: 15px; margin-bottom: 12px;">
+                <a href="https://www.cybob.com" target="_blank" >
+                    <img src="###BASEURL###data/template/assets/cybob_logo2024_white50_128.png" class="logo_cybob"  />
+                </a>
+            </div>
+
+        </div>
+        </cb:check>
+
+
+        <div class="col-sm g-0 min-vh-100 side_navigation_content">
+
+
+            <cb:check loggedin="1">
+            <div class="navbar navbar-default fixed-top" role="navigation" style="">
+                <div class="navbar-inner">
+                    <div class="container-fluid">
+
+                        <div class="navbar-header">
+                            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                                <span class="sr-only">Toggle navigation</span>
+                                <span class="icon-bar"></span>
+                                <span class="icon-bar"></span>
+                                <span class="icon-bar"></span>
+                            </button>
+                        </div>
+
+                        <a class="navbar-brand" href="###BASEURL###">Admin</a>
+
+                        <div class="container_search">
+                            <form action="###LINK:164###" method="post" name="formsearch" id="formsearch">
+                                <input id="search" name="search" type="text" class="form-control" placeholder="Suche" />
+                            </form>
+                        </div>
+
+
+
+
+                        <cb:check loggedin="1">
+
+                        <div class="btn-group justify-content-end position-absolute" style="right:0px; top:0px;">
+                            <button type="button" class="btn  dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                <div class="position-relative" style="width:30px; height:30px; border-radius: 15px; border:1px solid #999; opacity: 50%;">
+                                    <span class="position-absolute top-50 start-50 translate-middle fs-5 bi bi-person"></span>
+                                </div>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+<!--                                <li><a class="dropdown-item" href="#">Menu item</a></li>-->
+<!--                                <li><a class="dropdown-item" href="#">Menu item</a></li>-->
+<!--                                <li><hr class="dropdown-divider"></li>-->
+                                <li><a class="dropdown-item classid_modal_action" href="#" data-action="doLogout">Logout</a></li>
+                            </ul>
+                        </div>
+
+                        </cb:check>
+
+                    </div>
+                </div>
+            </div>
+            </cb:check>
+
+
+            <div style="padding: 0px 20px; ">
+                <div class="container-xxl" style="display: none;">
+                    <notempty element="page_data_show_subnavigation">
+                        <div class="row">
+                            <div class="col-12 order-2 d-flex flex-wrap-reverse">
+                                <div class="col-12">
+                                    ###part_DEVcontent###
+                                </div>
+
+
+                                <div class="dropdown mt-2">
+                                    <div class="position-absolute top-0 end-0">
+                                        <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            ###page_DEVname###
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <navigation
+                                                    level2="<li><a class='dropdown-item' href='###LINK###'>###page_name###</a></li>"
+                                                    level2_selected="<li><a class='dropdown-item private_dropdown_selected' href='###LINK###'>###page_name###</a></li>"
+                                            />
+                                        </ul>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </notempty>
+                </div>
+
+
+
+
+                <empty element="page_data_show_subnavigation">
+                    <div class="col-12">
+                        ###part_content###
+                    </div>
+                </empty>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+<!-- Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content" id="detailModalContent">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="detailModalLabel">Modal title</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="modal fade" id="mediumModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content" id="mediumModalContent">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="mediumModalLabel">Modal title</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                ...
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Save changes</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+
+<div class="modal fade" id="bigModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-xl cb_modaldialog_fullscreen">
+        <div class="modal-content cb_modalcontent_fullscreen" id="bigModalContent">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title">Details</h5>
+
+                <div class="w-100 text-center" style="margin-top: 15px;">
+                    <div id="header_button_big" class="" style=""></div>
+                </div>
+
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+            </div>
+
+            <div class="modal-body">
+                <div id="content_big">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <input name="upload_content_id" id="upload_content_id" type="hidden" value="" />
+                <input name="upload_structure_id" id="upload_structure_id" type="hidden" value="" />
+
+                <!--<button type="button" class="btn btn-default" data-bs-dismiss="modal">Schließen</button>-->
+                <!--button type="button" class="btn btn-primary">Upload</button-->
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<!-- Full screen modal -->
+<div class="modal fade" id="fullscreenModal" tabindex="-1" aria-labelledby="fullscreenModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen">
+        <div class="modal-content" id="fullscreenModalContent">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="fullscreenModalLabel">FullscreenModal title</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+<div id="container_notification" data-value="interval"></div>
+
+<script>
+
+    var BASEURL = '###BASEURL###';
+
+    var globalDetailModal = new bootstrap.Modal(document.getElementById('detailModal'),{backdrop: 'static', keyboard: false});
+    var globalMediumModal = new bootstrap.Modal(document.getElementById('mediumModal'),{backdrop: 'static', keyboard: false});
+    var globalBigModal = new bootstrap.Modal(document.getElementById('bigModal'),{backdrop: 'static', keyboard: false});
+    var globalFullscreenModal = new bootstrap.Modal(document.getElementById('fullscreenModal'),{backdrop: 'static', keyboard: false});
+
+
+    //var privateIntervalForNotificationTimer = setInterval(function(){ notificationTimer() }, 60000);
+
+    function notificationTimer(){
+
+        if ( $( "#container_notification" ).attr("data-value") != "disable" ) {
+            /*
+            var url = "###LINK:19###&action=Notification.checkForNotification";
+            $( "#container_notification" ).load( url, function() {
+                //alert( "Load was performed. "+url );
+            });
+            */
+
+        }
+
+    }
+
+
+    //
+    //
+    //
+    $(document).on('click', '.classid_modal_action', function () {
+
+        //
+        var id = $(this).attr("data-id");
+        var action = $(this).attr("data-action");
+
+        //
+        if (action == "doLogout") {
+
+
+            var url = BASEURL + "controller/address/doLogout/";
+
+            $.ajax({
+                'url': url,
+                'type': 'POST',
+                'success': function (result) {
+
+                    //window.location.reload(true);
+                    window.location = BASEURL + "admin/";
+
+                }
+            });
+
+            return false; // no submit of form
+
+        }
+
+    });
+
+
+</script>
+
+</body>
+</html>

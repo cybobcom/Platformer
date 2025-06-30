@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en" class="h-100" data-bs-theme="auto" >
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="<?php echo BASEURL; ?>data/template/css/bootstrap.min.css">
+    <link rel="stylesheet" href="<?php echo BASEURL; ?>data/template/css/plattform.css">
+
+    <style>
+        /* -B- */
+        :root {
+            --primary-color: #0099cc;
+            --secondary-color: #4F8309;
+            --third-color: #6EB70B;
+            --secondary-light-color: #D0DF00;
+            --highlight-text-color: #09244F;
+            --text-color: #464747;
+            --light-color: #F9F8F8;
+        }
+
+        body {
+            font-family: "Roboto", sans-serif;
+            font-weight: 400;
+            font-style: normal;
+
+            padding: 0px;
+
+            -webkit-font-smoothing: antialiased;
+        }
+
+
+        header {
+            background-color: #444;
+        }
+
+        .head_title {
+            font-size: 24px;
+            font-weight: 300;
+
+        }
+
+
+        .ajax_loader:before {
+            content: "\F5D4";
+            color: gray;
+            font-family: "bootstrap-icons";
+            font-size: 24px;
+            margin: 20px;
+
+
+            display: inline-block;
+            font-family: bootstrap-icons !important;
+            font-style: normal;
+            font-weight: normal !important;
+            font-variant: normal;
+            text-transform: none;
+            line-height: 1;
+            vertical-align: -.125em;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+
+            animation: spinner .6s linear infinite;
+        }
+
+        @keyframes spinner {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .btn-primary {
+            --bs-btn-color: #fff;
+            --bs-btn-bg: var(--primary-color);
+            --bs-btn-border-color: var(--primary-color);
+            --bs-btn-hover-color: #fff;
+            --bs-btn-hover-bg: var(--primary-color);
+            --bs-btn-hover-border-color: var(--primary-color);
+            --bs-btn-focus-shadow-rgb: 49, 132, 253;
+            --bs-btn-active-color: #fff;
+            --bs-btn-active-bg: var(--primary-color);
+            --bs-btn-active-border-color: var(--primary-color);
+            --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+            --bs-btn-disabled-color: #fff;
+            --bs-btn-disabled-bg: var(--primary-color);
+            --bs-btn-disabled-border-color: var(--primary-color);
+        }
+
+    </style>
+
+
+    <script src="<?php echo BASEURL; ?>data/template/js/bootstrap.bundle.min.js"></script>
+    <script src="<?php echo BASEURL; ?>data/template/js/jquery.min.js"></script>
+
+
+
+
+    <title><?php echo PLATTFORM_NAME; ?></title>
+</head>
+<body class="">
+
+
+<header class="p-3 text-bg-dark">
+    <div class="container">
+        <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+            <a href="/" class="d-flex align-items-center mb-2 mb-lg-0 text-white text-decoration-none head_title">
+                <?php echo PLATTFORM_NAME; ?>
+            </a>
+
+            <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+                <!-- <li><a href="#" class="nav-link px-2 text-secondary">Home</a></li>
+                <li><a href="#" class="nav-link px-2 text-white">Features</a></li>
+                <li><a href="#" class="nav-link px-2 text-white">Pricing</a></li>
+                <li><a href="#" class="nav-link px-2 text-white">FAQs</a></li>
+                <li><a href="#" class="nav-link px-2 text-white">About</a></li> -->
+            </ul>
+
+            <a href="/chatbot/admin/" class="bi bi-house text-light me-3 " data-show="" data-id=""></a>
+            <?php
+                $strGroups = $objPlattformUser->getAttribute("addressgroups");
+            $arrGroups = explode(",", $strGroups);
+            if ( in_array("2", $arrGroups) ) {
+            ?>
+
+            <a href="/chatbot/views/address/main/" class="bi bi-person text-light me-3 " data-show="" data-id=""></a>
+
+            <a href="/chatbot/views/addressgroup/main/" class="bi bi-people text-light me-3 " data-show="" data-id=""></a>
+
+<!--            <div class="bi bi-chat-square-text text-light me-3 classid_modal_show" data-show="listChatbotMessages"-->
+<!--                 data-id="chatbot_messages"></div>-->
+
+<!--            <div class="bi bi-gear text-light me-3 classid_modal_show" data-show="editConfiguration"-->
+<!--                 data-id="configuration"></div>-->
+            <?php
+                }
+                ?>
+
+            <!--
+            <div class="text-end">
+
+                <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3" role="search">
+                    <input id="filter_search" type="search" class="form-control form-control-dark"
+                           placeholder="Search..." aria-label="Search" autocomplete="off" autocorrect="off"
+                           autocapitalize="off" spellcheck="false">
+                </form>
+
+            </div>
+
+            <div class="bi bi-plus-lg text-light classid_modal_show" data-show="newItem"></div>
+            -->
+
+            <button type="button" class="btn btn-sm btn-outline-light ms-4 classid_modal_action"
+                    data-action="doLogout">Logout
+            </button>
+
+        </div>
+    </div>
+</header>
+
+<div class="container">
+    <div class="row">
+        <div id="" class="col-12">
+            ###part_content###
+        </div>
+
+    </div>
+</div>
+
+
+
+<!-- Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content" id="detailModalContent">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="detailModalLabel">Modal title</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Full screen modal -->
+<div class="modal fade" id="fullscreenModal" tabindex="-1" aria-labelledby="fullscreenModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen">
+        <div class="modal-content" id="fullscreenModalContent">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="fullscreenModalLabel">FullscreenModal title</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+
+    //
+    var BASEURL = '<?php echo BASEURL; ?>';
+
+    //
+    var globalDetailModal = new bootstrap.Modal(document.getElementById('detailModal'), {
+        backdrop: 'static',
+        keyboard: false
+    });
+    var globalFullscreenModal = new bootstrap.Modal(document.getElementById('fullscreenModal'), {
+        backdrop: 'static',
+        keyboard: false
+    });
+
+
+
+    //
+    //
+    //
+    $(document).on('click', '.classid_modal_action', function () {
+
+        //
+        var id = $(this).attr("data-id");
+        var action = $(this).attr("data-action");
+
+        //
+        if (action == "doLogout") {
+
+
+            var url = BASEURL + "admin/?action=doLogout";
+
+            $.ajax({
+                'url': url,
+                'type': 'POST',
+                'success': function (result) {
+
+                    //window.location.reload(true);
+                    window.location = BASEURL + "admin/";
+
+                }
+            });
+
+            return false; // no submit of form
+
+        }
+
+    });
+
+</script>
+
+</body>
+</html>

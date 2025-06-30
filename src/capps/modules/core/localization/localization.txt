@@ -1,0 +1,35 @@
+//
+// general
+//
+Schließen|Close
+Schlie&szlig;en|Close
+Speichern|Save
+Zugriff nicht möglich|Access not possible
+neuer Eintrag|New Entry
+Eintrag bearbeiten|Edit Entry
+Titel|Title
+Beschreibung|Description
+min. 25 Zeichen|min. 25 chars
+Bemerkung|Comment
+Status|Status
+sichtbar|Visible
+Bereich|Segment
+Quelle|Source
+Bearbeiter|Editor
+Tags|Tags
+Datei hochladen|Upload File
+Priorität|Priority
+öffentlich|puplic
+Mitteilung|Message
+Dauer|Duration
+Wer|Who
+Datum|Date
+Seite|Page
+Heute|Today
+Gestern|Yesterday
+Stunde|Hour
+Stundem|Hours
+Tag|Day
+Tage|Days
+Woche|Week
+Wochen|Weeks

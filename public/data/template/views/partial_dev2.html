@@ -1,0 +1,31 @@
+
+partial_dev<br>
+element_name: ###element_name###<br>
+content_name: ###content_name###<br>
+
+<br>
+page_name: ###page_name###<br>
+structure_name: ###structure_name###<br>
+
+<br>
+BASEURL: ###BASEURL###<br>
+CAPPS: ###CAPPS###<br>
+
+<?php
+
+
+$f = file_get_contents("###CAPPS###modules/structure/views/main.php");
+$f = parseTemplate($f,array());
+echo $f;
+
+
+
+?>
+<cb:easyadmin>
+name|Name|input
+</cb:easyadmin>
+
+<cb:localization>
+	name|1|NDEName
+	name|2|INTName
+</cb:localization>
