@@ -1,0 +1,253 @@
+# ============================================================================
+# Platformer - Git Ignore Configuration
+# ============================================================================
+
+# ============================================================================
+# SENSITIVE CONFIGURATION FILES
+# ============================================================================
+
+# Main configuration file (contains DB credentials, API keys, etc.)
+src/capps/inc.localconf.php
+
+# Backup configuration files
+src/capps/inc.localconf.php.bak
+src/capps/inc.localconf.*.php
+
+# Custom configuration overrides
+src/custom/inc.*.php
+
+# ============================================================================
+# ENVIRONMENT & IDE
+# ============================================================================
+
+# Mac
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# IDE - PhpStorm / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# IDE - VSCode
+.vscode/
+*.code-workspace
+
+# IDE - Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# IDE - NetBeans
+nbproject/
+
+# ============================================================================
+# PHP & DEPENDENCIES
+# ============================================================================
+
+# Composer
+/vendor/
+composer.phar
+composer.lock
+
+# PHP CS Fixer
+.php_cs.cache
+.php-cs-fixer.cache
+
+# PHPUnit
+.phpunit.result.cache
+phpunit.xml
+
+# ============================================================================
+# LOGS & TEMPORARY FILES
+# ============================================================================
+
+# Log files
+*.log
+*.log.*
+logs/
+error_log
+debug.log
+
+# Temporary files
+tmp/
+temp/
+cache/
+*.tmp
+*.swp
+*.swo
+*~
+
+# Session files
+sessions/
+sess_*
+
+# ============================================================================
+# UPLOADS & USER DATA
+# ============================================================================
+
+# User uploads (adjust paths as needed)
+public/data/uploads/*
+!public/data/uploads/.gitkeep
+
+# Generated files
+public/data/cache/*
+!public/data/cache/.gitkeep
+
+# User-generated content
+public/data/user/*
+!public/data/user/.gitkeep
+
+# ============================================================================
+# DATABASE & BACKUPS
+# ============================================================================
+
+# Database dumps
+*.sql
+*.sql.gz
+*.sql.zip
+backup/
+backups/
+
+# SQLite databases
+*.sqlite
+*.sqlite3
+*.db
+
+# Database migration files (if sensitive)
+# migrations/*.sql
+
+# ============================================================================
+# SECURITY & SENSITIVE DATA
+# ============================================================================
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# SSH keys
+id_rsa
+id_rsa.pub
+*.pem
+*.key
+*.crt
+
+# SSL certificates
+ssl/
+certs/
+
+# API keys and secrets
+secrets.php
+api_keys.php
+credentials.json
+
+# ============================================================================
+# BUILD & COMPILED FILES
+# ============================================================================
+
+# Node.js (if using frontend build tools)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Compiled assets
+public/data/template/js/dist/
+public/data/template/css/dist/
+dist/
+build/
+
+# ============================================================================
+# VERSION CONTROL & DEPLOYMENT
+# ============================================================================
+
+# Git
+*.orig
+*.rej
+*.patch
+
+# Deployment
+deploy.sh
+.deploy/
+deployment/
+
+# CI/CD
+.gitlab-ci.local.yml
+
+# ============================================================================
+# TESTING & DEVELOPMENT
+# ============================================================================
+
+# Test databases
+*_test.sql
+test_database.sql
+
+# Coverage reports
+coverage/
+.coverage
+htmlcov/
+
+# Selenium
+selenium-debug.log
+
+# ============================================================================
+# DOCUMENTATION (generated)
+# ============================================================================
+
+# Generated documentation
+docs/_build/
+docs/html/
+docs/latex/
+
+# ============================================================================
+# MAMP / XAMPP SPECIFIC
+# ============================================================================
+
+# MAMP logs
+/Applications/MAMP/logs/
+
+# XAMPP
+xampp/
+
+# ============================================================================
+# PLATFORM SPECIFIC
+# ============================================================================
+
+# Custom module development
+src/custom/modules/*/data/
+src/custom/modules/*/uploads/
+
+# Secure directory (mentioned in inc.localconf.php)
+websecure/
+
+# Configuration data files (might contain sensitive user data)
+public/data/configuration.xml
+public/data/data_*.xml
+
+# ============================================================================
+# KEEP THESE FILES
+# ============================================================================
+
+# Keep example configurations
+!src/capps/inc.localconf.example.php
+!.env.example
+
+# Keep demo files
+!src/capps/modules/database/demo/config.example.php
+
+# Keep .gitkeep files to maintain directory structure
+!**/.gitkeep
