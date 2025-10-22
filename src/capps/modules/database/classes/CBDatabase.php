@@ -23,12 +23,21 @@ class CBDatabase
 {
     private ?PDO $connection = null;
     private string $database;
+    private ?string $lastError = null;
 
     public function __construct(?array $config = null)
     {
         $config = $config ?? $this->getDefaultConfig();
         $this->connect($config);
         $this->database = $config['DB_DATABASE'];
+    }
+
+    /**
+     * Get last error message
+     */
+    public function getLastError(): ?string
+    {
+        return $this->lastError;
     }
 
     /**
@@ -90,7 +99,7 @@ class CBDatabase
 
         foreach ($configPaths as $path) {
             if (file_exists($path)) {
-                include $path;
+                include_once $path;
                 break;
             }
         }
@@ -111,12 +120,14 @@ class CBDatabase
      */
     public function get(string $query, array $params = []): array
     {
+        $this->lastError = null;
         try {
             $stmt = $this->connection->prepare($query);
             $stmt->execute($params);
             return $stmt->fetchAll();
         } catch (PDOException $e) {
-            throw new RuntimeException("Query failed: " . $e->getMessage());
+            $this->lastError = $e->getMessage();
+            return [];
         }
     }
 
@@ -125,13 +136,15 @@ class CBDatabase
      */
     public function selectOne(string $query, array $params = []): ?array
     {
+        $this->lastError = null;
         try {
             $stmt = $this->connection->prepare($query);
             $stmt->execute($params);
             $result = $stmt->fetch();
             return $result ?: null;
         } catch (PDOException $e) {
-            throw new RuntimeException("Query failed: " . $e->getMessage());
+            $this->lastError = $e->getMessage();
+            return null;
         }
     }
 
@@ -146,12 +159,14 @@ class CBDatabase
     /**
      * Execute INSERT - returns lastInsertId or primary key value
      */
-    public function insert(string $table, array $data, ?string $primaryKey = null): int|string
+    public function insert(string $table, array $data, ?string $primaryKey = null): int|string|false
     {
         if (empty($data)) {
-            throw new InvalidArgumentException("No data provided for insert");
+            $this->lastError = "No data provided for insert";
+            return false;
         }
 
+        $this->lastError = null;
         $columns = array_keys($data);
         $placeholders = array_fill(0, count($data), '?');
 
@@ -169,7 +184,8 @@ class CBDatabase
             // Otherwise return lastInsertId for auto_increment (int)
             return (int)$this->connection->lastInsertId();
         } catch (PDOException $e) {
-            throw new RuntimeException("Insert failed: " . $e->getMessage());
+            $this->lastError = $e->getMessage();
+            return false;
         }
     }
 
@@ -179,9 +195,11 @@ class CBDatabase
     public function update(string $table, array $data, string $where, array $whereParams = []): bool
     {
         if (empty($data)) {
-            throw new InvalidArgumentException("No data provided for update");
+            $this->lastError = "No data provided for update";
+            return false;
         }
 
+        $this->lastError = null;
         $setParts = array_map(fn($col) => "`{$col}` = ?", array_keys($data));
         $query = "UPDATE `{$table}` SET " . implode(', ', $setParts) . " WHERE {$where}";
 
@@ -190,7 +208,8 @@ class CBDatabase
             $params = array_merge(array_values($data), $whereParams);
             return $stmt->execute($params);
         } catch (PDOException $e) {
-            throw new RuntimeException("Update failed: " . $e->getMessage());
+            $this->lastError = $e->getMessage();
+            return false;
         }
     }
 
@@ -199,13 +218,15 @@ class CBDatabase
      */
     public function delete(string $table, string $where, array $whereParams = []): bool
     {
+        $this->lastError = null;
         $query = "DELETE FROM `{$table}` WHERE {$where}";
 
         try {
             $stmt = $this->connection->prepare($query);
             return $stmt->execute($whereParams);
         } catch (PDOException $e) {
-            throw new RuntimeException("Delete failed: " . $e->getMessage());
+            $this->lastError = $e->getMessage();
+            return false;
         }
     }
 
@@ -214,6 +235,7 @@ class CBDatabase
      */
     public function query(string $query, array $params = []): mixed
     {
+        $this->lastError = null;
         try {
             $stmt = $this->connection->prepare($query);
             $stmt->execute($params);
@@ -227,7 +249,8 @@ class CBDatabase
                 return $stmt->rowCount();
             }
         } catch (PDOException $e) {
-            throw new RuntimeException("Query failed: " . $e->getMessage());
+            $this->lastError = $e->getMessage();
+            return false;
         }
     }
 
@@ -277,10 +300,12 @@ class CBDatabase
      */
     public function beginTransaction(): bool
     {
+        $this->lastError = null;
         try {
             return $this->connection->beginTransaction();
         } catch (PDOException $e) {
-            throw new RuntimeException("Failed to begin transaction: " . $e->getMessage());
+            $this->lastError = $e->getMessage();
+            return false;
         }
     }
 
@@ -289,10 +314,12 @@ class CBDatabase
      */
     public function commit(): bool
     {
+        $this->lastError = null;
         try {
             return $this->connection->commit();
         } catch (PDOException $e) {
-            throw new RuntimeException("Failed to commit transaction: " . $e->getMessage());
+            $this->lastError = $e->getMessage();
+            return false;
         }
     }
 
@@ -301,10 +328,12 @@ class CBDatabase
      */
     public function rollback(): bool
     {
+        $this->lastError = null;
         try {
             return $this->connection->rollBack();
         } catch (PDOException $e) {
-            throw new RuntimeException("Failed to rollback transaction: " . $e->getMessage());
+            $this->lastError = $e->getMessage();
+            return false;
         }
     }
 

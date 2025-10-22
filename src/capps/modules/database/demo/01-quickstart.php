@@ -12,8 +12,8 @@ declare(strict_types=1);
 
 // Load configuration
 require_once __DIR__ . '/config.example.php';
-require_once __DIR__ . '/../../classes/CBDatabase.php';
-require_once __DIR__ . '/../../classes/CBObject.php';
+require_once __DIR__ . '/../classes/CBDatabase.php';
+require_once __DIR__ . '/../classes/CBObject.php';
 
 use Capps\Modules\Database\Classes\CBObject;
 
@@ -29,31 +29,49 @@ $userId = $user->create([
     'email' => 'alice@example.com',
     'active' => '1'
 ]);
-echo "Created user with ID: {$userId}\n";
-echo "Auto-generated UUID: {$user->get('user_uid')}\n\n";
+
+if ($userId === false) {
+    echo "ERROR: " . $user->getLastError() . "\n\n";
+} else {
+    echo "Created user with ID: {$userId}\n";
+    echo "Auto-generated UUID: {$user->get('user_uid')}\n\n";
+}
 
 // === LOAD BY ID ===
 echo "2. LOAD - Reading user by ID\n";
-$user->load($userId);
-echo "Loaded: {$user->get('name')} ({$user->get('email')})\n";
-echo "Created at: {$user->get('date_created')}\n\n";
+if ($userId && $user->load($userId)) {
+    echo "Loaded: {$user->get('name')} ({$user->get('email')})\n";
+    echo "Created at: {$user->get('date_created')}\n\n";
+} else {
+    echo "ERROR: Could not load user\n\n";
+}
 
 // === LOAD BY UUID ===
 echo "3. LOAD BY UUID - Reading user by UUID\n";
 $userUuid = $user->get('user_uid');
-$userByUuid = new CBObject(null, 'demo_users', 'user_id');
-$userByUuid->loadByUuid($userUuid, 'user_uid');
-echo "Loaded via UUID: {$userByUuid->get('name')}\n\n";
+if ($userUuid) {
+    $userByUuid = new CBObject(null, 'demo_users', 'user_id');
+    if ($userByUuid->load('user_uid:' . $userUuid)) {
+        echo "Loaded via UUID: {$userByUuid->get('name')}\n\n";
+    } else {
+        echo "ERROR: Could not load user by UUID\n\n";
+    }
+} else {
+    echo "SKIPPED: No UUID available\n\n";
+}
 
 // === UPDATE ===
 echo "4. UPDATE - Modifying user data\n";
-$user->update($userId, [
-    'name' => 'Alice Smith',
-    'email' => 'alice.smith@example.com'
-]);
-$user->load($userId);
-echo "Updated: {$user->get('name')}\n";
-echo "Updated at: {$user->get('date_updated')}\n\n";
+if ($userId && $user->update([
+        'name' => 'Alice Smith',
+        'email' => 'alice.smith@example.com'
+    ], $userId)) {
+    $user->load($userId);
+    echo "Updated: {$user->get('name')}\n";
+    echo "Updated at: {$user->get('date_updated')}\n\n";
+} else {
+    echo "ERROR: " . ($user->getLastError() ?: "Could not update user") . "\n\n";
+}
 
 // === SMART SAVE (auto-detects create vs update) ===
 echo "5. SAVE - Smart create/update\n";
@@ -61,12 +79,20 @@ $newUser = new CBObject(null, 'demo_users', 'user_id');
 $newUser->set('name', 'Bob Wilson');
 $newUser->set('email', 'bob@example.com');
 $newUser->set('active', '1');
-$newId = $newUser->save(); // Detects it's a new record
-echo "Saved new user with ID: {$newId}\n";
+$newId = $newUser->save($newUser->getAttributes()); // Detects it's a new record
 
-$newUser->set('name', 'Robert Wilson');
-$newUser->save(); // Detects it's an update
-echo "Updated user name to: {$newUser->get('name')}\n\n";
+if ($newId === false) {
+    echo "ERROR: " . $newUser->getLastError() . "\n\n";
+} else {
+    echo "Saved new user with ID: {$newId}\n";
+
+    $newUser->set('name', 'Robert Wilson');
+    if ($newUser->save($newUser->getAttributes())) {
+        echo "Updated user name to: {$newUser->get('name')}\n\n";
+    } else {
+        echo "ERROR: Could not update user name\n\n";
+    }
+}
 
 // === FIND ALL ===
 echo "6. FINDALL - Query multiple records\n";
@@ -84,7 +110,7 @@ echo "\n";
 echo "7. FIRST - Get first matching record\n";
 $firstUser = $user->first(['active' => '1']);
 if ($firstUser) {
-    echo "First active user: {$firstUser['name']}\n\n";
+    echo "First active user: {$firstUser->get('name')}\n\n";
 }
 
 // === COUNT ===
@@ -101,9 +127,16 @@ echo "Email 'alice.smith@example.com' exists: " . ($exists ? 'Yes' : 'No') . "\n
 
 // === DELETE ===
 echo "10. DELETE - Remove records\n";
-$user->delete($userId);
-echo "Deleted user ID: {$userId}\n";
-$user->delete($newId);
-echo "Deleted user ID: {$newId}\n\n";
+if ($userId && $user->delete($userId)) {
+    echo "Deleted user ID: {$userId}\n";
+} else {
+    echo "ERROR: Could not delete user ID: {$userId}\n";
+}
+
+if ($newId && $user->delete($newId)) {
+    echo "Deleted user ID: {$newId}\n\n";
+} else {
+    echo "ERROR: Could not delete user ID: {$newId}\n\n";
+}
 
 echo "=== DEMO COMPLETED ===\n";

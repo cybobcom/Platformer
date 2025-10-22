@@ -57,6 +57,14 @@ class CBObject
     }
 
     /**
+     * Get last error message from database
+     */
+    public function getLastError(): ?string
+    {
+        return $this->objDatabase->getLastError();
+    }
+
+    /**
      * Load table schema
      */
     private function loadTableSchema(): void
@@ -76,7 +84,7 @@ class CBObject
     public function load(mixed $id): bool
     {
         if ($id === null) {
-            throw new InvalidArgumentException("ID required for load");
+            return false;
         }
 
         // IMPORTANT: Clear array for loop compatibility (2025-05-14 bob)
@@ -149,10 +157,10 @@ class CBObject
     /**
      * Create new record - automatic UUID generation for _uid fields
      */
-    public function create(array $data): int|string
+    public function create(array $data): int|string|false
     {
         if (empty($data)) {
-            throw new InvalidArgumentException("No data provided for create");
+            return false;
         }
 
         // Add auto-timestamps (if fields exist)
@@ -173,7 +181,7 @@ class CBObject
 
         $insertId = $this->objDatabase->insert($this->strTable, $processedData, $this->strPrimaryKey);
 
-        if ($insertId) {
+        if ($insertId !== false) {
             $this->identifier = $insertId;
             $this->load($insertId);
         }
@@ -189,11 +197,11 @@ class CBObject
         $updateId = $id ?? $this->identifier;
 
         if ($updateId === null) {
-            throw new InvalidArgumentException("No ID for update");
+            return false;
         }
 
         if (empty($data)) {
-            throw new InvalidArgumentException("No data provided for update");
+            return false;
         }
 
         // Auto-timestamp for update (if field exists)
@@ -226,7 +234,7 @@ class CBObject
         $deleteId = $id ?? $this->identifier;
 
         if ($deleteId === null) {
-            throw new InvalidArgumentException("No ID for delete");
+            return false;
         }
 
         $success = $this->objDatabase->delete(
@@ -251,20 +259,15 @@ class CBObject
         $deleteId = $id ?? $this->identifier;
 
         if ($deleteId === null) {
-            throw new InvalidArgumentException("No ID for soft delete");
+            return false;
         }
 
         // Check if soft delete fields exist
-        if (!$this->hasColumn('deleted')) {
-            throw new RuntimeException("Table '{$this->strTable}' has no 'deleted' column for soft delete");
+        if (!$this->hasColumn('deleted_at')) {
+            return false;
         }
 
-        $data = ['deleted' => 1];
-
-        // Set deleted_date if field exists
-        if ($this->hasColumn('deleted_date')) {
-            $data['deleted_date'] = date('Y-m-d H:i:s');
-        }
+        $data = ['deleted_at' => date('Y-m-d H:i:s')];
 
         return $this->update($data, $deleteId);
     }
@@ -277,20 +280,15 @@ class CBObject
         $restoreId = $id ?? $this->identifier;
 
         if ($restoreId === null) {
-            throw new InvalidArgumentException("No ID for restore");
+            return false;
         }
 
         // Check if soft delete fields exist
-        if (!$this->hasColumn('deleted')) {
-            throw new RuntimeException("Table '{$this->strTable}' has no 'deleted' column");
+        if (!$this->hasColumn('deleted_at')) {
+            return false;
         }
 
-        $data = ['deleted' => 0];
-
-        // Reset deleted_date if field exists
-        if ($this->hasColumn('deleted_date')) {
-            $data['deleted_date'] = null;
-        }
+        $data = ['deleted_at' => null];
 
         return $this->update($data, $restoreId);
     }
@@ -625,7 +623,7 @@ class CBObject
      *
      * @param array $data Data to save
      * @param array $conditions Conditions for identification (for update check)
-     * @return int|string ID of saved record
+     * @return int|string|false ID of saved record or false on error
      *
      * @example
      * // Saves or updates user based on email
@@ -634,10 +632,10 @@ class CBObject
      *     ['email' => 'john@test.com']
      * );
      */
-    public function save(array $data, array $conditions = []): int|string
+    public function save(array $data, array $conditions = []): int|string|false
     {
         if (empty($data)) {
-            throw new InvalidArgumentException("No data provided for save");
+            return false;
         }
 
         // Check if record already exists
@@ -657,8 +655,8 @@ class CBObject
             // UPDATE
             $id = $existing[$this->strPrimaryKey];
             $data['date_updated'] = date('Y-m-d H:i:s');
-            $this->update($data, $id);
-            return $id;
+            $success = $this->update($data, $id);
+            return $success ? $id : false;
         } else {
             // INSERT
             $data = array_merge($data, $conditions); // Take conditions as data
@@ -782,7 +780,8 @@ class CBObject
             'primary_key' => $this->strPrimaryKey,
             'identifier' => $this->identifier,
             'attributes_count' => count($this->arrAttributes),
-            'has_data' => !empty($this->arrAttributes)
+            'has_data' => !empty($this->arrAttributes),
+            'last_error' => $this->getLastError()
         ];
     }
 }
