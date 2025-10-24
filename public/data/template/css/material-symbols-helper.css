@@ -1,0 +1,79 @@
+/* material-symbols-helper.css */
+
+/* NUR diese 10 Zeilen! */
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-weight: 100 700;
+  src: url('/data/template/fonts/material_symbols_outlined/material_symbols_outlined_400_v151.woff2') format('woff2');
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-size: 24px;
+  /* ... Basis-Styles */
+}
+
+/* Basis-Klasse */
+.ms {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+}
+
+/* Die 30 wichtigsten Icons */
+
+/* Navigation */
+.ms-menu::before { content: 'menu'; }
+.ms-close::before { content: 'close'; }
+.ms-arrow-back::before { content: 'arrow_back'; }
+.ms-arrow-forward::before { content: 'arrow_forward'; }
+.ms-home::before { content: 'home'; }
+
+/* Actions */
+.ms-add::before { content: 'add'; }
+.ms-remove::before { content: 'remove'; }
+.ms-edit::before { content: 'edit'; }
+.ms-delete::before { content: 'delete'; }
+.ms-save::before { content: 'save'; }
+.ms-check::before { content: 'check'; }
+.ms-cancel::before { content: 'cancel'; }
+
+/* UI */
+.ms-settings::before { content: 'settings'; }
+.ms-search::before { content: 'search'; }
+.ms-filter::before { content: 'filter_list'; }
+.ms-more::before { content: 'more_vert'; }
+.ms-refresh::before { content: 'refresh'; }
+.ms-download::before { content: 'download'; }
+.ms-upload::before { content: 'upload'; }
+
+/* Content */
+.ms-list::before { content: 'list'; }
+.ms-grid::before { content: 'grid_view'; }
+.ms-info::before { content: 'info'; }
+.ms-warning::before { content: 'warning'; }
+.ms-error::before { content: 'error'; }
+
+/* User */
+.ms-person::before { content: 'person'; }
+.ms-logout::before { content: 'logout'; }
+.ms-login::before { content: 'login'; }
+
+/* Common */
+.ms-favorite::before { content: 'favorite'; }
+.ms-share::before { content: 'share'; }
+.ms-visibility::before { content: 'visibility'; }
+
+/* Größen (optional) */
+.ms-18 { font-size: 18px; }
+.ms-24 { font-size: 24px; }
+.ms-36 { font-size: 36px; }
+.ms-48 { font-size: 48px; }
