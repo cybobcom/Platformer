@@ -2,6 +2,104 @@
 
 declare(strict_types=1);
 
+
+
+// ================================================================
+// ROBUST PATH DETECTION
+// Always works, regardless of domain or directory structure
+// ================================================================
+
+/**
+ * Base URL Detection - Works in all scenarios:
+ * - Root domain: https://example.com/
+ * - Subdirectory: https://example.com/myapp/
+ * - Subdomain: https://sub.example.com/
+ * - Local development: http://localhost/myapp/
+ * - With/without trailing slash
+ */
+function detectBaseUrl(): string
+{
+    // Protocol
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+
+    // Host
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+    // Script path (remove index.php and trailing parts)
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+
+    // Get directory path (remove filename)
+    $path = dirname($scriptName);
+
+    // Normalize path
+    $path = str_replace('\\', '/', $path); // Windows compatibility
+    $path = rtrim($path, '/');
+
+    // Remove admin/console if present in path
+    $path = preg_replace('#/(admin|console)$#', '', $path);
+
+    // Build URL
+    $baseUrl = $protocol . '://' . $host . $path;
+
+    // Always end with slash
+    return rtrim($baseUrl, '/') . '/';
+}
+
+/**
+ * Base Directory Detection - Robust file system paths
+ * Works with symbolic links, Docker volumes, etc.
+ */
+function detectBasedir(): string
+{
+    // Try multiple methods for finding document root
+    $docRoot = '';
+
+    // Method 1: Server document root
+    if (isset($_SERVER['DOCUMENT_ROOT']) && is_dir($_SERVER['DOCUMENT_ROOT'])) {
+        $docRoot = $_SERVER['DOCUMENT_ROOT'];
+    }
+
+    // Method 2: Derive from script filename
+    if (empty($docRoot) && isset($_SERVER['SCRIPT_FILENAME'])) {
+        $scriptFile = $_SERVER['SCRIPT_FILENAME'];
+        // Remove /public/index.php to get to root
+        $docRoot = dirname(dirname($scriptFile));
+    }
+
+    // Method 3: Fallback to current directory structure
+    if (empty($docRoot)) {
+        $docRoot = dirname(dirname(dirname(__FILE__)));
+    }
+
+    // Normalize path
+    $docRoot = str_replace('\\', '/', $docRoot);
+    $docRoot = realpath($docRoot) ?: $docRoot;
+
+    // Always end with slash
+    return rtrim($docRoot, '/') . '/';
+}
+
+/**
+ * Source Directory Detection - Where src/ folder is located
+ */
+function detectSourcedir(): string
+{
+    // Current file is in: /src/capps/inc.localconf.php
+    // We want: /src/
+
+    $currentFile = realpath(__FILE__);
+    $currentDir = dirname($currentFile); // /src/capps
+
+    // Go up one level to src/
+    $sourcedir = dirname($currentDir) . '/';
+
+    // Normalize
+    $sourcedir = str_replace('\\', '/', $sourcedir);
+
+    return $sourcedir;
+}
+
+
 // =================================================================
 // VEREINFACHTE AUTO-DETECTION: KLASSENNAME = MODULNAME
 // =================================================================

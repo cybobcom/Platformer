@@ -47,18 +47,33 @@ class CBCore
      */
     public function run(): void
     {
-        // 1. Parse request
+        // 1. Set required headers
+        $this->setHeaders();
+
+        // 2. Parse request
         $route = $this->parseRequest($_REQUEST, $_SERVER["REQUEST_URI"] ?? '');
 
-        // 2. Execute route
+        // 3. Execute route
         $html = match($route['type']) {
             'script' => $this->handleScriptRoute($route),
             'page' => $this->handlePageRoute($route),
             default => $this->handlePageRoute($route)
         };
 
-        // 3. Output
+        // 4. Output
         echo $html;
+    }
+
+    /**
+     * Set required HTTP headers
+     */
+    private function setHeaders(): void
+    {
+        // CORS for AJAX/jQuery
+        header('Access-Control-Allow-Origin: *');
+
+        // Character encoding
+        header('Content-Type: text/html; charset=utf-8');
     }
 
     /**
@@ -115,9 +130,12 @@ class CBCore
     {
         $option = str_replace("_", "/", $option);
 
-        // Check paths in order
+        $sourcedir = defined('SOURCEDIR') ? SOURCEDIR : BASEDIR . 'src/';
+        $customPath = ($segments[3] ?? '') ? '/' . $segments[3] : '';
+
+        // Check paths in order (custom first, then capps)
         $paths = [
-            SOURCEDIR . "{$type}/modules/{$option}/{$module}/" . ($segments[3] ?? '') . ".php",
+            $sourcedir . "{$type}/modules/{$option}/{$module}{$customPath}.php",
             CAPPS . "modules/{$module}/{$type}/{$option}.php"
         ];
 

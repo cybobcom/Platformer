@@ -34,15 +34,15 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
 // ============================================================================
 
 $arrConf = array();
-$arrConf['plattform_name'] = "Platformer Admin";
+$arrConf['platform_name'] = "Platformer Admin";
 
 // CHANGE THESE: Admin login credentials
-$arrConf['plattform_login'] = "admin";
-$arrConf['plattform_password'] = "change_this_password";
+$arrConf['platform_login'] = "admin";
+$arrConf['platform_password'] = "change_this_password";
 
 // Platform identifier (auto-generated, do not change)
-$strPlattformIdentitier = realpath(dirname(__FILE__)) . "/";
-$arrConf['plattform_identifier'] = md5($strPlattformIdentitier);
+$strPlatformIdentitier = realpath(dirname(__FILE__)) . "/";
+$arrConf['platform_identifier'] = md5($strPlatformIdentitier);
 
 // ============================================================================
 // PATH CONFIGURATION
@@ -67,7 +67,7 @@ $arrConf["custom"] = $arrConf['sourcedir'] . "custom/";
 // ============================================================================
 
 $arrConf["storage_identifier"] = "id";
-$arrConf["storage_configuration"] = "plattform_name,chat_intro,chat_overflow,chat_question_placeholder,chat_prewritten_questions,chat_disclaimer,role_system,tonality_serios,tonality_sophisticated,tonality_youthful,openai_api_key,modal_privacy";
+$arrConf["storage_configuration"] = "platform_name,chat_intro,chat_overflow,chat_question_placeholder,chat_prewritten_questions,chat_disclaimer,role_system,tonality_serios,tonality_sophisticated,tonality_youthful,openai_api_key,modal_privacy";
 $arrConf["storage_configuration_filename"] = "data/configuration.xml";
 
 // Load configuration from XML file (if exists)
