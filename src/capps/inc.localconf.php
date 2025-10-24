@@ -4,7 +4,6 @@
  * Platform Configuration
  *
  * Single source of truth for all platform configuration.
- * Copy inc.localconf.example.php to inc.localconf.php for setup.
  */
 
 // ================================================================
@@ -31,17 +30,37 @@ $arrConf['platform_password'] = "de06velop";
 $strPlatformIdentitier = realpath(dirname(__FILE__)) . "/";
 $arrConf['platform_identifier'] = md5($strPlatformIdentitier);
 
-// Apply robust detection
+// ================================================================
+// PATH DETECTION - Directly in localconf (NOT in functions.php!)
+// ================================================================
+
+// BASEDIR: Project root (where public/ is)
+// Example: /Applications/MAMP/htdocs/Platformer/
+if (isset($_SERVER['DOCUMENT_ROOT'])) {
+    // DOCUMENT_ROOT is usually /public/ folder
+    $arrConf['basedir'] = dirname($_SERVER['DOCUMENT_ROOT']) . '/';
+} else {
+    // Fallback: go up from inc.localconf.php
+    $arrConf['basedir'] = dirname(dirname(dirname(__FILE__))) . '/';
+}
+
+// SOURCEDIR: Where /src/ folder is
+// This file is in: /src/capps/inc.localconf.php
+// We want: /src/
+$arrConf['sourcedir'] = dirname(dirname(__FILE__)) . '/';
+
+// BASEURL: From functions.php (this one works correctly)
 $arrConf['baseurl'] = detectBaseUrl();
-$arrConf['basedir'] = detectBasedir();
-$arrConf['sourcedir'] = detectSourcedir();
+
+// Normalize all paths
+$arrConf['basedir'] = str_replace('\\', '/', $arrConf['basedir']);
+$arrConf['sourcedir'] = str_replace('\\', '/', $arrConf['sourcedir']);
+
+// Derived paths
 $arrConf['securedir'] = str_replace('/src/', '/websecure/', $arrConf['sourcedir']);
-$arrConf['capps'] = $arrConf['sourcedir'] . 'capps/';
-$arrConf['custom'] = $arrConf['sourcedir'] . 'custom/';
 
 // ================================================================
-// UNIFIED CONFIGURATION
-// All module configurations in one place
+// UNIFIED CONFIGURATION - Single source of truth for vendor paths
 // ================================================================
 
 $arrConf['cbinit'] = [
@@ -64,33 +83,27 @@ $arrConf['cbinit'] = [
     'fallback_class' => 'capps\\modules\\database\\classes\\CBObject',
     'strict_mode' => false
 ];
-echo "<pre>\n"; print_r($arrConf); echo "</pre>\n";
+
+// Define convenience constants from cbinit vendors
+define('CAPPS', $arrConf['cbinit']['vendors']['capps']['path']);
+define('CUSTOM', $arrConf['cbinit']['vendors']['custom']['path']);
+
 // ================================================================
 // CONVERT TO CONSTANTS
 // ================================================================
 
-// Individual constants for common use
 foreach ($arrConf as $key => $value) {
     if (!is_array($value)) {
         define(strtoupper($key), $value);
     }
 }
-echo CAPPS; exit;
-// Full configuration as single constant (PHPStorm-friendly)
+
 define('CONFIGURATION', $arrConf);
 
-// Setup CBINIT globals (for backward compatibility)
-global $CBINIT_CONFIG, $CBINIT_CACHE, $CBINIT_STATS;
-$CBINIT_CONFIG = $arrConf['cbinit'];
-$CBINIT_CACHE = [];
-$CBINIT_STATS = ['hits' => 0, 'misses' => 0, 'fallbacks' => 0, 'vendor_usage' => []];
-
 // ================================================================
-// DATABASE CONFIGURATION (Separate for security)
+// DATABASE CONFIGURATION
 // ================================================================
 
-// TODO: Later move credentials to environment variables
-// or separate encrypted config file
 define('DATABASE', [
     'DB_HOST' => 'localhost',
     'DB_USER' => 'root',
@@ -100,7 +113,7 @@ define('DATABASE', [
 ]);
 
 // ================================================================
-// MAIL CONFIGURATION (Separate for clarity)
+// MAIL CONFIGURATION
 // ================================================================
 
 define('MAIL', [
@@ -120,12 +133,14 @@ define('ENCRYPTION_KEY32', 'platf202506300000000000000000000');
 define('DEBUG_MAIL', 'robert.heuer@cybob.com');
 
 // ================================================================
-// CONFIGURATION VALIDATION (Debug mode only)
+// DEBUG OUTPUT (optional)
 // ================================================================
 
 if (defined('DEBUG_MODE') && DEBUG_MODE && isset($_GET['show_config'])) {
-    echo '<h2>Configuration Validation</h2>';
+    echo '<h2>Configuration</h2>';
     echo '<pre>';
+    print_r($arrConf);
+    echo "\n\nConstants:\n";
     echo 'BASEURL: ' . BASEURL . "\n";
     echo 'BASEDIR: ' . BASEDIR . "\n";
     echo 'SOURCEDIR: ' . SOURCEDIR . "\n";
