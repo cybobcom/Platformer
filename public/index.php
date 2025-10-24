@@ -1,8 +1,10 @@
 <?php
 
 /**
- * Application Entry Point - Optimized
- * Single entry point for the entire platform
+ * Application Entry Point - Final Version
+ *
+ * Single entry point for the entire platform.
+ * All security headers and response types are handled by CBCore.
  */
 
 // ================================================================
@@ -16,55 +18,86 @@ $startMemory = memory_get_usage();
 // ENVIRONMENT SETUP
 // ================================================================
 
-// Environment detection
 $isProduction = getenv('ENVIRONMENT') === 'production';
 
 if ($isProduction) {
     ini_set('display_errors', '0');
-    ini_set('display_startup_errors', '0');
     error_reporting(0);
 } else {
     ini_set('display_errors', '1');
-    ini_set('display_startup_errors', '1');
     error_reporting(E_ALL);
     define('DEBUG_MODE', true);
     define('ENABLE_PROFILING', true);
 }
 
 // ================================================================
-// SECURITY HEADERS
+// SESSION (SECURITY: ini_set REQUIRED!)
 // ================================================================
-
-header('X-Content-Type-Options: nosniff');
-header('X-Frame-Options: SAMEORIGIN');
-header('X-XSS-Protection: 1; mode=block');
-header('Referrer-Policy: strict-origin-when-cross-origin');
-
-if ($isProduction) {
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
-}
-
-// ================================================================
-// SESSION
-// ================================================================
+// These settings protect against XSS, MITM, CSRF, and Session Fixation
+// DO NOT remove them - they are security best practice!
 
 if (session_status() === PHP_SESSION_NONE) {
-    ini_set('session.cookie_httponly', '1');
-    ini_set('session.cookie_secure', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? '1' : '0');
-    ini_set('session.cookie_samesite', 'Strict');
-    ini_set('session.use_strict_mode', '1');
+    ini_set('session.cookie_httponly', '1');  // XSS protection
+    ini_set('session.cookie_secure', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? '1' : '0'); // MITM protection
+    ini_set('session.cookie_samesite', 'Strict'); // CSRF protection
+    ini_set('session.use_strict_mode', '1'); // Session fixation protection
     session_start();
 }
 
 // ================================================================
-// PATH CONFIGURATION
+// FLEXIBLE PATH DETECTION (No functions needed!)
 // ================================================================
 
+// Method 1: Try standard structure first (most common)
 $basePath = __DIR__ . '/../src/';
 
+// Method 2: If standard doesn't exist, search upwards
+if (!is_dir($basePath)) {
+    $currentDir = __DIR__;
+    $maxLevels = 5; // Don't search more than 5 levels up
+
+    for ($i = 0; $i < $maxLevels; $i++) {
+        $testPath = $currentDir . '/src/';
+        if (is_dir($testPath)) {
+            $basePath = $testPath;
+            break;
+        }
+
+        // Go one level up
+        $currentDir = dirname($currentDir);
+
+        // Stop at filesystem root
+        if ($currentDir === dirname($currentDir)) {
+            break;
+        }
+    }
+}
+
+// Method 3: Try from SCRIPT_FILENAME (works with symlinks, Docker)
+if (!is_dir($basePath) && isset($_SERVER['SCRIPT_FILENAME'])) {
+    $scriptDir = dirname($_SERVER['SCRIPT_FILENAME']);
+    $testPath = dirname($scriptDir) . '/src/';
+    if (is_dir($testPath)) {
+        $basePath = $testPath;
+    }
+}
+
+// Method 4: Last resort - try DOCUMENT_ROOT
+if (!is_dir($basePath) && isset($_SERVER['DOCUMENT_ROOT'])) {
+    $testPath = $_SERVER['DOCUMENT_ROOT'] . '/../src/';
+    if (is_dir($testPath)) {
+        $basePath = $testPath;
+    }
+}
+
+// Normalize path
+$basePath = str_replace('\\', '/', $basePath);
+$basePath = rtrim($basePath, '/') . '/';
+
+// Final validation
 if (!is_dir($basePath)) {
     http_response_code(500);
-    die('Configuration error: Source directory not found');
+    die('Configuration error: Source directory not found. Searched: ' . htmlspecialchars($basePath));
 }
 
 // ================================================================
@@ -75,14 +108,14 @@ try {
     // 1. Load core functions
     $functionsFile = $basePath . 'capps/modules/core/functions.php';
     if (!file_exists($functionsFile)) {
-        throw new \RuntimeException('Functions file not found');
+        throw new \RuntimeException('Functions file not found: ' . $functionsFile);
     }
     require_once $functionsFile;
 
     // 2. Load configuration
     $configFile = $basePath . 'capps/inc.localconf.php';
     if (!file_exists($configFile)) {
-        throw new \RuntimeException('Configuration file not found');
+        throw new \RuntimeException('Configuration file not found: ' . $configFile);
     }
     require_once $configFile;
 
@@ -100,31 +133,50 @@ try {
     $autoloader = new \capps\modules\core\classes\CBAutoloader();
     $autoloader->register();
 
-    // Register module namespaces
-    foreach(glob(CAPPS.'modules/*', GLOB_ONLYDIR) as $dir) {
-        $dirName = basename($dir);
-        $autoloader->addNamespace('capps\\modules\\'.$dirName.'\\classes\\', $dir.'/classes');
-        $autoloader->addNamespace('Capps\\Modules\\'.ucfirst($dirName).'\\Classes\\', $dir.'/classes');
-    }
+    // Register module namespaces from ALL configured vendors (dynamic)
+    $vendors = CONFIGURATION['cbinit']['vendors'] ?? [];
 
-    if (defined('CUSTOM')) {
-        foreach(glob(CUSTOM.'modules/*', GLOB_ONLYDIR) as $dir) {
-            $dirName = basename($dir);
-            $autoloader->addNamespace('custom\\modules\\'.$dirName.'\\classes\\', $dir.'/classes');
-            $autoloader->addNamespace('Custom\\Modules\\'.ucfirst($dirName).'\\Classes\\', $dir.'/classes');
+    foreach ($vendors as $vendorName => $vendorConfig) {
+        // Skip disabled vendors
+        if (!($vendorConfig['enabled'] ?? true)) {
+            continue;
+        }
+
+        $vendorPath = $vendorConfig['path'] ?? '';
+        if (empty($vendorPath) || !is_dir($vendorPath)) {
+            continue;
+        }
+
+        // Find all module directories in this vendor
+        $modulesPath = rtrim($vendorPath, '/') . '/modules';
+        if (!is_dir($modulesPath)) {
+            continue;
+        }
+
+        foreach(glob($modulesPath . '/*', GLOB_ONLYDIR) as $dir) {
+            $moduleName = basename($dir);
+
+            // Register lowercase namespace (backward compatibility)
+            $autoloader->addNamespace(
+                    $vendorName . '\\modules\\' . $moduleName . '\\classes\\',
+                    $dir . '/classes'
+            );
+
+            // Register capitalized namespace (modern)
+            $autoloader->addNamespace(
+                    ucfirst($vendorName) . '\\Modules\\' . ucfirst($moduleName) . '\\Classes\\',
+                    $dir . '/classes'
+            );
         }
     }
 
-    // 5. Import classes
-    use Capps\Modules\Core\Classes\CBCore;
-    use Capps\Modules\Address\Classes\Address;
-    use Capps\Modules\Database\Classes\CBObject;
+    // 5. Use fully qualified class names (no use statements allowed in try block)
 
     // 6. System attributes
     $coreArrSystemAttributes = ['seo_modrewrite' => '1'];
 
-    // 7. Load user
-    $objPlatformUser = new Address($_SESSION[PLATFORM_IDENTIFIER]["login_user_identifier"] ?? "");
+    // 7. Load user (fully qualified class name)
+    $objPlatformUser = new \Capps\Modules\Address\Classes\Address($_SESSION[PLATFORM_IDENTIFIER]["login_user_identifier"] ?? "");
 
     // Email validation
     $user_email = $objPlatformUser->getAttribute("login");
@@ -156,14 +208,8 @@ try {
     }
     $coreArrRoute = $arrIDtmp;
 
-    // 11. Set globals (backward compatibility)
-    $GLOBALS['coreArrSystemAttributes'] = $coreArrSystemAttributes;
-    $GLOBALS['objPlatformUser'] = $objPlatformUser;
-    $GLOBALS['coreArrSortedStructure'] = $coreArrSortedStructure;
-    $GLOBALS['coreArrRoute'] = $coreArrRoute;
-
-    // 12. Run application
-    $core = new CBCore();
+    // 11. Run application (fully qualified class name)
+    $core = new \Capps\Modules\Core\Classes\CBCore();
     $core->init($objPlatformUser, $coreArrSortedStructure, $coreArrRoute);
     $core->run();
 

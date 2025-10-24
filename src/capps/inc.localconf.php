@@ -64,7 +64,7 @@ $arrConf['cbinit'] = [
     'fallback_class' => 'capps\\modules\\database\\classes\\CBObject',
     'strict_mode' => false
 ];
-
+echo "<pre>\n"; print_r($arrConf); echo "</pre>\n";
 // ================================================================
 // CONVERT TO CONSTANTS
 // ================================================================
@@ -75,7 +75,7 @@ foreach ($arrConf as $key => $value) {
         define(strtoupper($key), $value);
     }
 }
-
+echo CAPPS; exit;
 // Full configuration as single constant (PHPStorm-friendly)
 define('CONFIGURATION', $arrConf);
 
