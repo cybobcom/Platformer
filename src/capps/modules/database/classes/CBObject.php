@@ -376,6 +376,7 @@ class CBObject
      */
     public function findAll(array $conditions = [], array $options = []): array
     {
+
         $where = '';
         $params = [];
 

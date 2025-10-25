@@ -61,7 +61,8 @@ class CBParser {
 
         if(strstr($strTemplate, "<cb:navigation")){
             // get parameter
-            preg_match_all('/<cb:navigation(.*) \/>/Us', $strTemplate, $arrTmp);
+            //preg_match_all('/<cb:navigation(.*) \/>/Us', $strTemplate, $arrTmp);
+            preg_match_all('/<cb:navigation(.*?)\/>/s', $strTemplate, $arrTmp);
 
             // for each time
             foreach ($arrTmp[1] as $rT=>$vT ) {
@@ -264,8 +265,8 @@ class CBParser {
 //                            }
 //                        }
                             //
-                            global $objPlattformUser;
-                            $arrAddressgroups = explode(",", $objPlattformUser->getAttribute("addressgroups"));
+                            global $objPlatformUser;
+                            $arrAddressgroups = explode(",", $objPlatformUser->getAttribute("addressgroups"));
                             if (is_array($arrAddressgroups)) {
                                 foreach ($arrCSgroups as $r => $v) {
                                     if (!in_array($v, $arrAddressgroups) && $v != "0") continue;
@@ -810,7 +811,7 @@ class CBParser {
                 //
                 if ( $arrTagAttributes['loggedin'] == "1" || $arrTagAttributes['loggedin'] == "on" || $arrTagAttributes['loggedin'] == "true" ) {
                     //echo "login: ".$_SESSION[PLATTFORM_IDENTIFIER]['login_verified']."-". $_SESSION[PLATTFORM_IDENTIFIER]['login_user_identifier'];
-                    if ( !isset($_SESSION[PLATTFORM_IDENTIFIER]['login_verified'] ) || $_SESSION[PLATTFORM_IDENTIFIER]['login_verified'] == "" || !isset($_SESSION[PLATTFORM_IDENTIFIER]['login_user_identifier']) || $_SESSION[PLATTFORM_IDENTIFIER]['login_user_identifier'] == "" )  {
+                    if ( !isset($_SESSION[PLATFORM_IDENTIFIER]['login_verified'] ) || $_SESSION[PLATFORM_IDENTIFIER]['login_verified'] == "" || !isset($_SESSION[PLATFORM_IDENTIFIER]['login_user_identifier']) || $_SESSION[PLATFORM_IDENTIFIER]['login_user_identifier'] == "" )  {
                         $strReplace = "";
                         //$boolParse = true;
                         //echo "DEV empty";
@@ -821,7 +822,7 @@ class CBParser {
 
                 if ( $arrTagAttributes['loggedin'] == "0" || $arrTagAttributes['loggedin'] == "off" || $arrTagAttributes['loggedin'] == "false" ) {
                     //echo "login".$_SESSION[PLATTFORM_IDENTIFIER]['login_verified']."-".$_SESSION['aid'];
-                    if ( ( isset($_SESSION[PLATTFORM_IDENTIFIER]['login_verified']) && $_SESSION[PLATTFORM_IDENTIFIER]['login_verified'] != "" ) || ( isset($_SESSION[PLATTFORM_IDENTIFIER]['login_user_identifier']) && $_SESSION[PLATTFORM_IDENTIFIER]['login_user_identifier'] != "" ) )  {
+                    if ( ( isset($_SESSION[PLATFORM_IDENTIFIER]['login_verified']) && $_SESSION[PLATFORM_IDENTIFIER]['login_verified'] != "" ) || ( isset($_SESSION[PLATFORM_IDENTIFIER]['login_user_identifier']) && $_SESSION[PLATFORM_IDENTIFIER]['login_user_identifier'] != "" ) )  {
                         $strReplace = "";
                         //$boolParse = true;
                         //echo "DEV2";

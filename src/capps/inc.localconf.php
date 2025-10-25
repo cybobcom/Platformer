@@ -77,9 +77,14 @@ $arrConf['cbinit'] = [
             'priority' => 100,
             'enabled' => true
         ],
+        'agent' => [
+            'path' => $arrConf['sourcedir'] . 'agent/',
+            'priority' => 200,
+            'enabled' => true
+        ],
         'custom' => [
             'path' => $arrConf['sourcedir'] . 'custom/',
-            'priority' => 200,
+            'priority' => 300,
             'enabled' => true
         ]
     ],

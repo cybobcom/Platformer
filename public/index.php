@@ -206,6 +206,8 @@ try {
         foreach ($coreArrRoute as $value) {
             $tmp = $value['structure_id'] . ':' . $value['content_id'] . ':' . $value['address_id'];
             $arrIDtmp[$tmp] = $value['route'];
+
+
         }
     }
     $coreArrRoute = $arrIDtmp;

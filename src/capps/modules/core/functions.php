@@ -246,7 +246,7 @@ function checkIntersection(string $userGroups, string $requiredGroups): bool
     return !empty(array_intersect($userGroupArray, $requiredGroupArray));
 }
 
-function parseTemplate(string $template, array $data, string $prefix = '', bool $htmlSpecialChars = true): string
+function parseTemplateFIRST(string $template, array $data, string $prefix = '', bool $htmlSpecialChars = true): string
 {
     foreach ($data as $key => $value) {
         if (!is_string($value) && !is_numeric($value)) {
@@ -259,6 +259,63 @@ function parseTemplate(string $template, array $data, string $prefix = '', bool 
     }
 
     return $template;
+}
+
+function parseTemplate($_strTemplate, $_arrEntry, $_prefix = "", $_clean = true) {
+
+    $strParsed = $_strTemplate;
+
+    if ( is_array($_arrEntry) && count($_arrEntry) >= 1 ) {
+        foreach ($_arrEntry as $key=>$value){
+            if (!is_array($value)) {
+                $arrPrefix = explode("|", $_prefix);
+                foreach ($arrPrefix as $prefix) {
+                    $strParsed = str_replace("###" . $prefix . $key . "###", stripslashes($value.""), $strParsed);
+                    $strParsed = str_replace("###" . strtoupper($prefix . $key) . "###", stripslashes($value.""), $strParsed);
+                }
+            } else {
+                $strParsed = parseTemplate($strParsed,$value,$_prefix,$_clean);
+            }
+        }
+    }
+
+    if ( defined("CONFIGURATION") ) {
+        foreach ( CONFIGURATION as $key=>$value) {
+            if (!is_array($value)) {
+                $strParsed = str_replace("###" . $key . "###", $value . "", $strParsed);
+            } else {
+                // TODO parse array
+            }
+        }
+    }
+
+    //
+    if ( defined('VERSION') ) $strParsed = str_replace("###version###",VERSION,$strParsed);
+    if ( defined('VERSION') ) $strParsed = str_replace("###VERSION###",VERSION,$strParsed);
+
+    if ( defined('MODULE') ) $strParsed = str_replace("###module###",MODULE,$strParsed);
+    if ( defined('MODULE') ) $strParsed = str_replace("###MODULE###",MODULE,$strParsed);
+
+    if ( defined('CAPPS') ) $strParsed = str_replace("###capps###",CAPPS,$strParsed);
+    if ( defined('CAPPS') ) $strParsed = str_replace("###CAPPS###",CAPPS,$strParsed);
+
+    if ( defined('BASEURL') ) $strParsed = str_replace("###baseurl###",BASEURL,$strParsed);
+    if ( defined('BASEURL') ) $strParsed = str_replace("###BASEURL###",BASEURL,$strParsed);
+
+    if ( defined('BASEDIR') ) $strParsed = str_replace("###basedir###",BASEDIR,$strParsed);
+    if ( defined('BASEDIR') ) $strParsed = str_replace("###BASEDIR###",BASEDIR,$strParsed);
+
+
+
+    //
+    $strParsed = str_replace("###random###", time()."", $strParsed);
+    $strParsed = str_replace("###RANDOM###", time()."", $strParsed);
+
+    // clean
+    if ( $_clean) $strParsed = preg_replace('/###.*###/Us','',$strParsed);
+
+    return $strParsed;
+
 }
 
 function CBLog($data, string $message = ''): void

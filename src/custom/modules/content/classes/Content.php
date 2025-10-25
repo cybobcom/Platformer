@@ -36,13 +36,11 @@ class Content extends CBObject
 	 * 
 	 * @param mixed $id Agent UUID to load (null for new agent)
 	 * @param array|null $arrDB_Data Database configuration (optional)
-	 * @param LoggerInterface|null $logger Logger instance (optional)
 	 * @param array $config Additional configuration options
 	 */
 	public function __construct(
 		mixed $id = null,
 		?array $arrDB_Data = null,
-		?LoggerInterface $logger = null,
 		array $config = []
 	) {
 		// Call parent constructor with agent-specific settings
@@ -51,7 +49,6 @@ class Content extends CBObject
 			'capps_content',          // Table name
 			'content_id',            // Primary key
 			$arrDB_Data,            // Database config
-			$logger ?? new NullLogger(), // Logger
 			$config                 // Additional config
 		);
 	}

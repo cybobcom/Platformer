@@ -1,10 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo CONFIGURATION["plattform_name"]; ?></title>
+    <title><?php echo CONFIGURATION["platform_name"]; ?></title>
+
+    <base href="<?php echo BASEURL; ?>">
 
     <link rel="stylesheet" href="<?php echo BASEURL; ?>data/template/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?php echo BASEURL; ?>data/template/css/frontend.css?<?php echo time(); ?>">
@@ -17,6 +18,16 @@
 </head>
 <body>
 
+<cb:navigation
+        entry="14"
+        highlightDEVPath="1"
+        level1="<li><a href='###LINK###' class='nav-link py-2 px-0 ###page_data_icon### side_navigation_icon' data-toggle='tooltip' data-bs-placement='right' title='###page_name###'></a></li>"
+        level1_selected="<li><a href='###LINK###' class='nav-link py-2 px-0 ###page_data_icon### side_navigation_icon_selected' data-toggle='tooltip' data-bs-placement='right' title='###page_name###'></a></li>"
+        level2="<li><a href='###LINK###' class='nav-link py-2 px-0 ###page_data_icon### side_navigation_icon' data-toggle='tooltip' data-bs-placement='right' title='###page_name###'></a></li>"
+        level2_selected="<li><a href='###LINK###' class='nav-link py-2 px-0 ###page_data_icon### side_navigation_icon_selected' data-toggle='tooltip' data-bs-placement='right' title='###page_name###'></a></li>"
+/>
+
+###structure_name###---
 ###part_content###
 
 
@@ -36,14 +47,18 @@
     });
 
     //
-    var globalDetailModal = new bootstrap.Modal(document.getElementById('detailModal'), {
-        backdrop: 'static',
-        keyboard: false
-    });
-    var globalPrivacyModal = new bootstrap.Modal(document.getElementById('privacyModal'), {
-        backdrop: 'static',
-        keyboard: false
-    });
+    if(document.getElementById('detailModal')) {
+        var globalDetailModal = new bootstrap.Modal(document.getElementById('detailModal'), {
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+    if(document.getElementById('privacyModal')) {
+        var globalPrivacyModal = new bootstrap.Modal(document.getElementById('privacyModal'), {
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
 
     //
     var tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
@@ -54,8 +69,9 @@
     const dropdownList = [...dropdownElementList].map(dropdownToggleEl => new bootstrap.Dropdown(dropdownToggleEl))
 
     var boolFirstQuestion = false;
-    var myDropdown = new bootstrap.Dropdown(document.getElementById('myDropdown'), {autoClose: 'true'});
-
+    if(document.getElementById('myDropdown')) {
+        var myDropdown = new bootstrap.Dropdown(document.getElementById('myDropdown'), {autoClose: 'true'});
+    }
 
 
 

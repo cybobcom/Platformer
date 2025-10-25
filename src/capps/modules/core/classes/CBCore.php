@@ -15,7 +15,7 @@ use Capps\Modules\Address\Classes\Address;
  *
  * Features:
  * - Simple routing
- * - Template rendering (NO eval!)
+ * - Template rendering with PHP support (secure via include)
  * - Request handling
  * - Permission checks
  * - Response type management (HTML, JSON, etc.)
@@ -96,36 +96,26 @@ class CBCore
         $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
         if (str_contains($accept, 'application/json')) {
             $this->responseType = 'json';
-            return;
         }
-
-        // Default is HTML
-        $this->responseType = 'html';
     }
 
     /**
-     * Set security headers based on environment and response type
+     * Set security headers
      */
     private function setSecurityHeaders(): void
     {
-        // Basic security headers (always)
-        header('X-Content-Type-Options: nosniff');
+        if (headers_sent()) {
+            return;
+        }
+
+        // Basic security headers
         header('X-Frame-Options: SAMEORIGIN');
+        header('X-Content-Type-Options: nosniff');
         header('X-XSS-Protection: 1; mode=block');
         header('Referrer-Policy: strict-origin-when-cross-origin');
 
-        // CORS (AJAX/JSON support)
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-        // Production-only strict CSP
-        if ($this->isProduction && $this->responseType === 'html') {
-            header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
-        }
-
-        // HSTS in production (force HTTPS)
-        if ($this->isProduction && isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+        // Production-only headers
+        if ($this->isProduction) {
             header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
         }
     }
@@ -135,43 +125,22 @@ class CBCore
      */
     private function setContentTypeHeader(): void
     {
+        if (headers_sent()) {
+            return;
+        }
+
         match($this->responseType) {
             'json' => header('Content-Type: application/json; charset=utf-8'),
-            'xml' => header('Content-Type: application/xml; charset=utf-8'),
-            'text' => header('Content-Type: text/plain; charset=utf-8'),
+            'html' => header('Content-Type: text/html; charset=utf-8'),
             default => header('Content-Type: text/html; charset=utf-8')
         };
     }
 
     /**
-     * Get current response type
-     */
-    public function getResponseType(): string
-    {
-        return $this->responseType;
-    }
-
-    /**
-     * Manually set response type
-     */
-    public function setResponseType(string $type): void
-    {
-        $this->responseType = $type;
-    }
-
-    /**
-     * Parse request into route array - simple and fast
+     * Parse request into route information
      */
     private function parseRequest(array $request, string $requestUri): array
     {
-        // Special routes
-        if ($requestUri === "/admin/") {
-            return ['type' => 'script', 'template' => 'admin', 'script' => null];
-        }
-        if ($requestUri === "/console/") {
-            return ['type' => 'script', 'template' => 'console', 'script' => null];
-        }
-
         $cbRoute = $request['CBroute'] ?? '';
 
         // Empty route = page
@@ -344,11 +313,22 @@ class CBCore
     private function handlePageRoute(array $route): string
     {
         $structureId = $route['structure_id'];
-        //CBLog($structureId); exit;
+
+        //
+        if ( !isset($_REQUEST['structure_id']) ) {
+            $_REQUEST['structure_id'] = $structureId;
+        }
+//        if ( !isset($_REQUEST['content_id']) ) {
+//            $_REQUEST['content_id'] = $key['content_id'];
+//        }
+//        if ( !isset($_REQUEST['address_id']) ) {
+//            $_REQUEST['address_id'] = $key['address_id'];
+//        }
+
 
         // Load structure
         $structure = new CBObject($structureId, 'capps_structure', 'structure_id');
-        //CBLog($structure); exit;
+
         // Check permissions
         if (!$this->checkAccess($structure)) {
             header('Location: ' . BASEURL);
@@ -398,16 +378,87 @@ class CBCore
     }
 
     /**
-     * Render page template - NO eval!
+     * Execute template with PHP support
+     * Variables available in template: $structure, $content, $templateVars (array)
+     */
+    private function executeTemplate(string $templatePath, array $templateVars = []): string
+    {
+        if (empty($templatePath)) {
+            return "";
+        }
+
+        $fullPath = BASEDIR . ltrim($templatePath, '/');
+
+        if (!file_exists($fullPath)) {
+            return "";
+        }
+
+        // Security: Only allow templates from data/template/ or src/ directory
+        $allowedPaths = [
+            BASEDIR . 'data/template/',
+            defined('SOURCEDIR') ? SOURCEDIR : BASEDIR . 'src/'
+        ];
+
+        $realPath = realpath($fullPath);
+        $isAllowed = false;
+
+        if ($realPath !== false) {
+            foreach ($allowedPaths as $allowedPath) {
+                $realAllowedPath = realpath($allowedPath);
+                if ($realAllowedPath !== false && strpos($realPath, $realAllowedPath) === 0) {
+                    $isAllowed = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$isAllowed) {
+            if (defined('DEBUG_MODE') && DEBUG_MODE) {
+                error_log("Template security: Path outside allowed directories: {$fullPath}");
+            }
+            return "";
+        }
+
+        // Extract variables for template
+        extract($templateVars, EXTR_SKIP);
+
+        // Execute template with output buffering
+        ob_start();
+        include $fullPath;
+        return ob_get_clean();
+    }
+
+    /**
+     * Render page template with PHP support
      */
     private function renderPageTemplate(CBObject $structure): string
     {
         // Load template file
         $templatePath = $structure->get('template');
-        $template = $this->loadTemplateFile($templatePath);
 
-        if (empty($template)) {
+        // Prepare variables for template
+        $templateVars = [
+            'structure' => $structure,
+            'content' => null // Will be set in content rendering
+        ];
+
+        // Check if template contains PHP
+        $templateContent = $this->loadTemplateFile($templatePath);
+        if (empty($templateContent)) {
             return $this->formatError("Template not found");
+        }
+
+        // Replace structure placeholders
+        //$templateContent = parseTemplate($templateContent, $structure->arrAttributes, "page_|structure_", false);
+
+        $hasPHP = str_contains($templateContent, '<?php') || str_contains($templateContent, '<?=');
+
+        if ($hasPHP) {
+            // Execute template with PHP support
+            $template = $this->executeTemplate($templatePath, $templateVars);
+        } else {
+            // No PHP, just load content
+            $template = $templateContent;
         }
 
         // Remove easyadmin blocks
@@ -438,7 +489,9 @@ class CBCore
             'structure_id' => $structure->get('structure_id'),
             'language_id' => '1',
             'active' => '1'
-        ], ['order' => 'position']);
+        ], ['order' => 'sorting']); // position oder sorting
+        //CBLog($contentItems);
+        //CBLog($content->debug());
 
         $html = '';
 
@@ -451,10 +504,26 @@ class CBCore
             }
 
             // Load content template
-            $contentTemplate = $this->loadTemplateFile($contentObj->get('template'));
+            $contentTemplatePath = $contentObj->get('template');
+            $contentTemplateContent = $this->loadTemplateFile($contentTemplatePath);
 
-            if (empty($contentTemplate)) {
+            if (empty($contentTemplateContent)) {
                 continue;
+            }
+
+            // Check if content template contains PHP
+            $hasPHP = str_contains($contentTemplateContent, '<?php') || str_contains($contentTemplateContent, '<?=');
+
+            if ($hasPHP) {
+                // Execute with PHP support
+                $templateVars = [
+                    'structure' => $structure,
+                    'content' => $contentObj
+                ];
+                $contentTemplate = $this->executeTemplate($contentTemplatePath, $templateVars);
+            } else {
+                // No PHP
+                $contentTemplate = $contentTemplateContent;
             }
 
             // Remove easyadmin blocks
@@ -486,7 +555,7 @@ class CBCore
             return "";
         }
 
-        $fullPath = BASEDIR . $templatePath;
+        $fullPath = BASEDIR . ltrim($templatePath, '/');
 
         if (!file_exists($fullPath)) {
             return "";
