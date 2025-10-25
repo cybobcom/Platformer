@@ -704,7 +704,7 @@ class CBObject
      */
     public function getAttribute(string $key): mixed
     {
-        return $this->arrAttributes[$key] ?? null;
+        return $this->arrAttributes[$key] ?? "";
     }
 
     /**
@@ -783,5 +783,10 @@ class CBObject
             'has_data' => !empty($this->arrAttributes),
             'last_error' => $this->getLastError()
         ];
+    }
+
+    function query($strQuery)
+    {
+        return $this->objDatabase->get($strQuery);
     }
 }

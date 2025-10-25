@@ -96,22 +96,25 @@ class CBDatabase
             $_SERVER['DOCUMENT_ROOT'] . '/../src/capps/inc.localconf.php',
             dirname(__DIR__, 3) . '/inc.localconf.php'
         ];
-
+/*
         foreach ($configPaths as $path) {
             if (file_exists($path)) {
                 include_once $path;
                 break;
             }
         }
+        */
 
-        // Fallback to environment variables or constants
+        // Use DATABASE constant array with fallback to environment variables
+        $dbConfig = defined('DATABASE') && is_array(DATABASE) ? DATABASE : [];
+
         return [
-            'DB_HOST' => defined('DB_HOST') ? DB_HOST : ($_ENV['DB_HOST'] ?? 'localhost'),
-            'DB_PORT' => defined('DB_PORT') ? DB_PORT : ($_ENV['DB_PORT'] ?? 3306),
-            'DB_DATABASE' => defined('DB_DATABASE') ? DB_DATABASE : ($_ENV['DB_DATABASE'] ?? ''),
-            'DB_USER' => defined('DB_USER') ? DB_USER : ($_ENV['DB_USER'] ?? ''),
-            'DB_PASSWORD' => defined('DB_PASSWORD') ? DB_PASSWORD : ($_ENV['DB_PASSWORD'] ?? ''),
-            'DB_CHARSET' => defined('DB_CHARSET') ? DB_CHARSET : ($_ENV['DB_CHARSET'] ?? 'utf8mb4')
+            'DB_HOST' => $dbConfig['DB_HOST'] ?? ($_ENV['DB_HOST'] ?? 'localhost'),
+            'DB_PORT' => $dbConfig['DB_PORT'] ?? ($_ENV['DB_PORT'] ?? 3306),
+            'DB_DATABASE' => $dbConfig['DB_DATABASE'] ?? ($_ENV['DB_DATABASE'] ?? ''),
+            'DB_USER' => $dbConfig['DB_USER'] ?? ($_ENV['DB_USER'] ?? ''),
+            'DB_PASSWORD' => $dbConfig['DB_PASSWORD'] ?? ($_ENV['DB_PASSWORD'] ?? ''),
+            'DB_CHARSET' => $dbConfig['DB_CHARSET'] ?? ($_ENV['DB_CHARSET'] ?? 'utf8mb4')
         ];
     }
 

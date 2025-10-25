@@ -6,9 +6,6 @@ namespace capps\modules\address\classes;
 
 use capps\modules\database\classes\CBObject;
 use capps\modules\database\classes\CBDatabase;
-//use Psr\Log\LoggerInterface;
-//use Psr\Log\NullLogger;
-use Capps\Modules\Database\Classes\NullLogger;
 
 
 /**
@@ -36,13 +33,11 @@ class Address extends CBObject
 	 * 
 	 * @param mixed $id Agent UUID to load (null for new agent)
 	 * @param array|null $arrDB_Data Database configuration (optional)
-	 * @param LoggerInterface|null $logger Logger instance (optional)
 	 * @param array $config Additional configuration options
 	 */
 	public function __construct(
 		mixed $id = null,
 		?array $arrDB_Data = null,
-		?LoggerInterface $logger = null,
 		array $config = []
 	) {
 		// Call parent constructor with agent-specific settings
@@ -51,7 +46,6 @@ class Address extends CBObject
 			'capps_address',          // Table name
 			'address_uid',            // Primary key
 			$arrDB_Data,            // Database config
-			$logger ?? new NullLogger(), // Logger
 			$config                 // Additional config
 		);
 	}

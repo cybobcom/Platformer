@@ -36,13 +36,20 @@ $arrConf['platform_identifier'] = md5($strPlatformIdentitier);
 
 // BASEDIR: Project root (where public/ is)
 // Example: /Applications/MAMP/htdocs/Platformer/
+// TODO: THIS DID NOT WORK PROPERLY
 if (isset($_SERVER['DOCUMENT_ROOT'])) {
     // DOCUMENT_ROOT is usually /public/ folder
-    $arrConf['basedir'] = dirname($_SERVER['DOCUMENT_ROOT']) . '/';
+    // THIS DID NOT WORK
+    //$arrConf['basedir'] = dirname($_SERVER['DOCUMENT_ROOT']) . '/';
+
+    // valid - proofed for local installatoin
+    $path = dirname($_SERVER['SCRIPT_NAME'] ?? '');
+    $arrConf['basedir'] = $_SERVER['DOCUMENT_ROOT'].$path. '/';
 } else {
     // Fallback: go up from inc.localconf.php
     $arrConf['basedir'] = dirname(dirname(dirname(__FILE__))) . '/';
 }
+
 
 // SOURCEDIR: Where /src/ folder is
 // This file is in: /src/capps/inc.localconf.php

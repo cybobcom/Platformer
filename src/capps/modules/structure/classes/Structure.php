@@ -6,9 +6,7 @@ namespace capps\modules\structure\classes;
 
 use capps\modules\database\classes\CBObject;
 use capps\modules\database\classes\CBDatabase;
-//use Psr\Log\LoggerInterface;
-//use Psr\Log\NullLogger;
-use Capps\Modules\Database\Classes\NullLogger;
+
 
 class Structure extends CBObject
 {
@@ -16,7 +14,6 @@ class Structure extends CBObject
     public function __construct(
         mixed $id = null,
         ?array $arrDB_Data = null,
-        ?LoggerInterface $logger = null,
         array $config = []
     ) {
         // Call parent constructor with agent-specific settings
@@ -25,7 +22,6 @@ class Structure extends CBObject
             'capps_structure',          // Table name
             'structure_id',            // Primary key
             $arrDB_Data,            // Database config
-            $logger ?? new NullLogger(), // Logger
             $config                 // Additional config
         );
     }
@@ -155,7 +151,7 @@ class Structure extends CBObject
     function generateSortedStructure($language_id=""): array
     {
         $arrCondition = array();
-        $arrCondition["language_id"] = $_SESSION[PLATTFORM_IDENTIFIER]["plattform_language_id"]??"1";
+        $arrCondition["language_id"] = $_SESSION[PLATFORM_IDENTIFIER]["plattform_language_id"]??"1";
         if ( $language_id != "" ) $arrCondition["language_id"] = $language_id;
 
         $arrIDs = $this->getAllEntries("parent_id|sorting","ASC|ASC",$arrCondition,NULL,"*");

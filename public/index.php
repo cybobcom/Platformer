@@ -170,7 +170,7 @@ try {
         }
     }
 
-    // 5. Use fully qualified class names (no use statements allowed in try block)
+
 
     // 6. System attributes
     $coreArrSystemAttributes = ['seo_modrewrite' => '1'];
@@ -193,20 +193,23 @@ try {
     // 9. Load structure
     $objStructure = CBinitObject("Structure");
     $coreArrSortedStructure = $objStructure->generateSortedStructure();
+    //CBLog($coreArrSortedStructure,"coreArrSortedStructure"); exit;
 
     // 10. Load route cache
     $lid = 1;
     $sql = "SELECT * FROM capps_route WHERE language_id = {$lid} AND (data NOT LIKE '%<manual_link><![CDATA[1]]></manual_link>%' OR data IS NULL) ORDER BY content_id ASC";
-    $coreArrRoute = $objStructure->get($sql);
+    $coreArrRoute = $objStructure->query($sql);
 
+    // TODO: $value['address_id'] could be id or uid
     $arrIDtmp = [];
     if (is_array($coreArrRoute)) {
         foreach ($coreArrRoute as $value) {
-            $tmp = $value['structure_id'] . ':' . $value['content_id'] . ':' . $value['address_uid'];
+            $tmp = $value['structure_id'] . ':' . $value['content_id'] . ':' . $value['address_id'];
             $arrIDtmp[$tmp] = $value['route'];
         }
     }
     $coreArrRoute = $arrIDtmp;
+    //CBLog($coreArrRoute,"coreArrRoute"); exit;
 
     // 11. Run application (fully qualified class name)
     $core = new \Capps\Modules\Core\Classes\CBCore();

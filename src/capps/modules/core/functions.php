@@ -263,8 +263,9 @@ function parseTemplate(string $template, array $data, string $prefix = '', bool 
 
 function CBLog($data, string $message = ''): void
 {
-    if (defined('DEBUG_MODE') && DEBUG_MODE) {
+   // if (defined('DEBUG_MODE') && DEBUG_MODE) {
+        echo "$message: <pre>"; print_r($data); echo "</pre>";
         $logMessage = $message ? $message . ': ' : '';
         error_log($logMessage . print_r($data, true));
-    }
+    //}
 }

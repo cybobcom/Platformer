@@ -344,10 +344,11 @@ class CBCore
     private function handlePageRoute(array $route): string
     {
         $structureId = $route['structure_id'];
+        //CBLog($structureId); exit;
 
         // Load structure
         $structure = new CBObject($structureId, 'capps_structure', 'structure_id');
-
+        //CBLog($structure); exit;
         // Check permissions
         if (!$this->checkAccess($structure)) {
             header('Location: ' . BASEURL);
@@ -355,7 +356,7 @@ class CBCore
         }
 
         // Check if active
-        if ($structure->get('active') !== '1') {
+        if ($structure->get('active') != '1') {
             return $this->formatError("Structure not active", 403);
         }
 
