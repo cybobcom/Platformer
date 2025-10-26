@@ -81,6 +81,45 @@ class CBObject
     /**
      * Load object - supports _id (int) and _uid (string/UUID)
      */
+    public function loadFIRST(mixed $id): bool
+    {
+        if ($id === null) {
+            return false;
+        }
+
+        // IMPORTANT: Clear array for loop compatibility (2025-05-14 bob)
+        $this->arrAttributes = [];
+
+        // Composite Key Support (e.g. "email:test@example.com")
+        if (is_string($id) && str_contains($id, ':')) {
+            [$column, $value] = explode(':', $id, 2);
+            $data = $this->objDatabase->selectOne(
+                "SELECT * FROM `{$this->strTable}` WHERE `{$column}` = ? LIMIT 1",
+                [$value]
+            );
+        } else {
+            // Standard: Primary Key Lookup
+            $data = $this->objDatabase->selectOne(
+                "SELECT * FROM `{$this->strTable}` WHERE `{$this->strPrimaryKey}` = ? LIMIT 1",
+                [$id]
+            );
+        }
+
+        if (!$data) {
+            return false;
+        }
+
+        $this->populateFromData($data);
+
+        // Identifier is ALWAYS the value of the Primary Key from DB
+        $this->identifier = $data[$this->strPrimaryKey];
+
+        return true;
+    }
+
+    /**
+     * Load object - supports _id, _uid, composite keys, and array
+     */
     public function load(mixed $id): bool
     {
         if ($id === null) {
@@ -89,6 +128,18 @@ class CBObject
 
         // IMPORTANT: Clear array for loop compatibility (2025-05-14 bob)
         $this->arrAttributes = [];
+
+        // NEW: Array Support (for performance optimization)
+        if (is_array($id)) {
+            $this->populateFromData($id);
+
+            // Set identifier from primary key
+            if (isset($id[$this->strPrimaryKey])) {
+                $this->identifier = $id[$this->strPrimaryKey];
+            }
+
+            return true;
+        }
 
         // Composite Key Support (e.g. "email:test@example.com")
         if (is_string($id) && str_contains($id, ':')) {
@@ -157,7 +208,7 @@ class CBObject
     /**
      * Create new record - automatic UUID generation for _uid fields
      */
-    public function create(array $data): int|string|false
+    public function createFIRST(array $data): int|string|false
     {
         if (empty($data)) {
             return false;
@@ -190,9 +241,82 @@ class CBObject
     }
 
     /**
+     * Create new record with localization support
+     *
+     * @param array $data Data to create
+     * @param string|null $lang Language code for localization
+     * @return int|string|false
+     */
+    public function create(array $data, ?string $lang = null): int|string|false
+    {
+        if (empty($data)) {
+            return false;
+        }
+
+        // Add auto-timestamps (if fields exist)
+        if ($this->hasColumn('date_created') && !isset($data['date_created'])) {
+            $data['date_created'] = date('Y-m-d H:i:s');
+        }
+        if ($this->hasColumn('date_updated') && !isset($data['date_updated'])) {
+            $data['date_updated'] = date('Y-m-d H:i:s');
+        }
+
+        // LOCALIZATION HANDLING
+        // Priority 1: Explicit localize structure
+        if (isset($data['localize']) && is_array($data['localize'])) {
+            $localizeXML = $this->buildLocalizeXML($data['localize']);
+            $data['localize'] = $localizeXML;
+        }
+        // Priority 2: Language parameter specified
+        elseif ($lang !== null) {
+            $defaultLang = 'de';
+            if (class_exists('\Capps\Modules\Core\Classes\CBCore')) {
+                $defaultLang = \Capps\Modules\Core\Classes\CBCore::getDefaultLanguage();
+            }
+            $localizedData = [];
+
+            // Move localizable fields to localize structure
+            foreach ($data as $key => $value) {
+                // Skip non-localizable fields
+                if (in_array($key, ['date_updated', 'date_created', 'active', 'deleted_at'])) {
+                    continue;
+                }
+
+                // Store in localize structure
+                $localizedData[$lang][$key] = $value;
+
+                // If NOT default language, remove from column data
+                if ($lang !== $defaultLang && $this->hasColumn($key)) {
+                    unset($data[$key]);
+                }
+            }
+
+            // Build localize XML
+            $data['localize'] = $this->buildLocalizeXML($localizedData);
+        }
+
+        // Process XML fields
+        $processedData = $this->processXmlFieldsForSave($data);
+
+        // Auto-generate UUID if Primary Key ends with _uid
+        if (str_ends_with($this->strPrimaryKey, '_uid') && !isset($processedData[$this->strPrimaryKey])) {
+            $processedData[$this->strPrimaryKey] = $this->objDatabase->generateUuid();
+        }
+
+        $insertId = $this->objDatabase->insert($this->strTable, $processedData, $this->strPrimaryKey);
+
+        if ($insertId !== false) {
+            $this->identifier = $insertId;
+            $this->load($insertId);
+        }
+
+        return $insertId;
+    }
+
+    /**
      * Update record
      */
-    public function update(array $data, mixed $id = null): bool
+    public function updateFIRST(array $data, mixed $id = null): bool
     {
         $updateId = $id ?? $this->identifier;
 
@@ -207,6 +331,87 @@ class CBObject
         // Auto-timestamp for update (if field exists)
         if ($this->hasColumn('date_updated') && !isset($data['date_updated'])) {
             $data['date_updated'] = date('Y-m-d H:i:s');
+        }
+
+        // Process XML fields
+        $processedData = $this->processXmlFieldsForSave($data);
+
+        $success = $this->objDatabase->update(
+            $this->strTable,
+            $processedData,
+            "`{$this->strPrimaryKey}` = ?",
+            [$updateId]
+        );
+
+        if ($success && $updateId == $this->identifier) {
+            $this->load($updateId);
+        }
+
+        return $success;
+    }
+
+    /**
+     * Update record with localization support
+     *
+     * @param array $data Data to update
+     * @param mixed $id ID to update (null = use current identifier)
+     * @param string|null $lang Language code for localization (null=default, 'de'/'en'=localize)
+     * @return bool
+     */
+    public function update(array $data, mixed $id = null, ?string $lang = null): bool
+    {
+        $updateId = $id ?? $this->identifier;
+
+        if ($updateId === null) {
+            return false;
+        }
+
+        if (empty($data)) {
+            return false;
+        }
+
+        // Auto-timestamp for update (if field exists)
+        if ($this->hasColumn('date_updated') && !isset($data['date_updated'])) {
+            $data['date_updated'] = date('Y-m-d H:i:s');
+        }
+
+        // LOCALIZATION HANDLING
+        // Priority 1: Explicit localize structure
+        if (isset($data['localize']) && is_array($data['localize'])) {
+            $localizeXML = $this->buildLocalizeXML($data['localize']);
+            $data['localize'] = $localizeXML;
+        }
+        // Priority 2: Language parameter specified
+        elseif ($lang !== null) {
+            $defaultLang = 'de';
+            if (class_exists('\Capps\Modules\Core\Classes\CBCore')) {
+                $defaultLang = \Capps\Modules\Core\Classes\CBCore::getDefaultLanguage();
+            }
+            // Load existing localize data
+            $this->load($updateId);
+            $localizedData = $this->parseLocalizeXML($this->arrAttributes['localize'] ?? '');
+
+            // Update localized fields
+            foreach ($data as $key => $value) {
+                // Skip non-localizable fields
+                if (in_array($key, ['date_updated', 'date_created', 'active', 'deleted_at'])) {
+                    continue;
+                }
+
+                // Store in localize structure
+                $localizedData[$lang][$key] = $value;
+
+                // If this is the default language, also write to column
+                if ($lang === $defaultLang && $this->hasColumn($key)) {
+                    // Keep in $data for column update
+                } else {
+                    // Remove from data (only in localize)
+                    unset($data[$key]);
+                }
+            }
+
+            // Build localize XML
+            $data['localize'] = $this->buildLocalizeXML($localizedData);
         }
 
         // Process XML fields
@@ -633,7 +838,7 @@ class CBObject
      *     ['email' => 'john@test.com']
      * );
      */
-    public function save(array $data, array $conditions = []): int|string|false
+    public function saveFIRST(array $data, array $conditions = []): int|string|false
     {
         if (empty($data)) {
             return false;
@@ -663,6 +868,38 @@ class CBObject
             $data = array_merge($data, $conditions); // Take conditions as data
             $data['date_created'] = date('Y-m-d H:i:s');
             return $this->create($data);
+        }
+    }
+
+    /**
+     * Smart Save with localization support
+     */
+    public function save(array $data, array $conditions = [], ?string $lang = null): int|string|false
+    {
+        if (empty($data)) {
+            return false;
+        }
+
+        // Check if record already exists
+        $existing = null;
+
+        if (!empty($conditions)) {
+            $results = $this->findAll($conditions, ['limit' => 1]);
+            $existing = !empty($results) ? $results[0] : null;
+        } elseif ($this->identifier !== null) {
+            $existing = [$this->strPrimaryKey => $this->identifier];
+        }
+
+        // Update or Insert
+        if ($existing) {
+            // UPDATE
+            $id = $existing[$this->strPrimaryKey];
+            $success = $this->update($data, $id, $lang);
+            return $success ? $id : false;
+        } else {
+            // INSERT
+            $data = array_merge($data, $conditions);
+            return $this->create($data, $lang);
         }
     }
 
@@ -703,8 +940,70 @@ class CBObject
     /**
      * Read attribute (Legacy + Modern)
      */
-    public function getAttribute(string $key): mixed
+    public function getAttributeFIRST(string $key): mixed
     {
+        return $this->arrAttributes[$key] ?? "";
+    }
+
+    /**
+     * Get attribute with localization support + fallback chain
+     *
+     * Fallback priority:
+     * 1. localize for current language
+     * 2. original column value
+     * 3. localize for default language
+     *
+     * @param string $key Attribute name
+     * @param string|false|null $lang Language code (null=auto, false=raw)
+     * @return mixed
+     */
+    public function getAttribute(string $key, $lang = null): mixed
+    {
+        // Raw mode - no localization
+        if ($lang === false) {
+            return $this->arrAttributes[$key] ?? "";
+        }
+
+        // Auto-detect language
+        if ($lang === null) {
+            // Try CBCore if available
+            if (class_exists('\Capps\Modules\Core\Classes\CBCore')) {
+                $lang = \Capps\Modules\Core\Classes\CBCore::getLanguage();
+            } else {
+                // Fallback: use 'de' as default
+                $lang = 'de';
+            }
+        }
+
+        // Check if localize column exists and has data
+        if (!isset($this->arrAttributes['localize']) || empty($this->arrAttributes['localize'])) {
+            return $this->arrAttributes[$key] ?? "";
+        }
+
+        // Parse localize XML
+        $localizedData = $this->parseLocalizeXML($this->arrAttributes['localize']);
+
+        // Priority 1: Localized value for requested language
+        if (isset($localizedData[$lang][$key])) {
+            return $localizedData[$lang][$key];
+        }
+
+        // Priority 2: Original column value
+        if (isset($this->arrAttributes[$key]) && !empty($this->arrAttributes[$key])) {
+            return $this->arrAttributes[$key];
+        }
+
+        // Priority 3: Default language fallback
+        $defaultLang = 'de'; // Fallback default
+        if (class_exists('\Capps\Modules\Core\Classes\CBCore')) {
+            $defaultLang = \Capps\Modules\Core\Classes\CBCore::getDefaultLanguage();
+        }
+
+        if ($lang !== $defaultLang && isset($localizedData[$defaultLang][$key])) {
+            return $localizedData[$defaultLang][$key];
+        }
+
+        // Final fallback
         return $this->arrAttributes[$key] ?? "";
     }
 
@@ -719,9 +1018,30 @@ class CBObject
     /**
      * Set attribute
      */
-    public function setAttribute(string $key, mixed $value): void
+    public function setAttributeFIRST(string $key, mixed $value): void
     {
         $this->arrAttributes[$key] = $value;
+    }
+
+    /**
+     * Set attribute with localization support
+     *
+     * @param string $key Attribute name
+     * @param mixed $value Value to set
+     * @param string|null $lang Language code (null=current language)
+     */
+    public function setAttribute(string $key, mixed $value, ?string $lang = null): void
+    {
+        // If no language specified, set normal attribute
+        if ($lang === null) {
+            $this->arrAttributes[$key] = $value;
+            return;
+        }
+
+        // Set localized value in localize column
+        $localizedData = $this->parseLocalizeXML($this->arrAttributes['localize'] ?? '');
+        $localizedData[$lang][$key] = $value;
+        $this->arrAttributes['localize'] = $this->buildLocalizeXML($localizedData);
     }
 
     /**
@@ -790,4 +1110,55 @@ class CBObject
     {
         return $this->objDatabase->get($strQuery);
     }
+
+    /**
+     * Parse localize XML column
+     */
+    private function parseLocalizeXML(string $xml): array
+    {
+        if (empty($xml)) {
+            return [];
+        }
+
+        $result = [];
+
+        // Simple XML parsing for <lang code="de"><field>value</field></lang>
+        if (preg_match_all('/<lang code="([^"]+)">(.*?)<\/lang>/s', $xml, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $langCode = $match[1];
+                $langContent = $match[2];
+
+                // Parse fields within language
+                if (preg_match_all('/<([^>]+)><!\[CDATA\[(.*?)\]\]><\/\1>/s', $langContent, $fields, PREG_SET_ORDER)) {
+                    foreach ($fields as $field) {
+                        $result[$langCode][$field[1]] = $field[2];
+                    }
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Build localize XML column
+     */
+    private function buildLocalizeXML(array $data): string
+    {
+        if (empty($data)) {
+            return '';
+        }
+
+        $xml = '';
+        foreach ($data as $lang => $fields) {
+            $xml .= '<lang code="' . $lang . '">';
+            foreach ($fields as $key => $value) {
+                $xml .= '<' . $key . '><![CDATA[' . $value . ']]></' . $key . '>';
+            }
+            $xml .= '</lang>';
+        }
+
+        return $xml;
+    }
+
 }

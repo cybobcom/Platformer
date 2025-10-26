@@ -261,7 +261,7 @@ function parseTemplateFIRST(string $template, array $data, string $prefix = '', 
     return $template;
 }
 
-function parseTemplate($_strTemplate, $_arrEntry, $_prefix = "", $_clean = true) {
+function parseTemplateSECOND($_strTemplate, $_arrEntry, $_prefix = "", $_clean = true) {
 
     $strParsed = $_strTemplate;
 
@@ -318,6 +318,152 @@ function parseTemplate($_strTemplate, $_arrEntry, $_prefix = "", $_clean = true)
 
 }
 
+
+/**
+ * Flexible parseTemplate with configurable delimiters
+ *
+ * Supports multiple syntax styles simultaneously:
+ * - ###var###  (current)
+ * - %%var%%    (percent)
+ * - @[var]     (at-bracket)
+ * - [[var]]    (double-bracket)
+ * - {{var}}    (mustache-style)
+ *
+ * Performance: Only processes if delimiters are detected
+ */
+function parseTemplate($_strTemplate, $_arrEntry, $_prefix = "", $_clean = true, $_delimiters = null)
+{
+
+    $strParsed = $_strTemplate;
+
+    // Define all supported delimiter styles
+    // Format: [openTag, closeTag, detectPattern]
+    $defaultDelimiters = [
+        ['###', '###', '###'],           // Current (default)
+        ['%%', '%%', '%%'],               // Percent
+        ['@[', ']', '@['],                // At-bracket
+        ['[[', ']]', '[['],               // Double-bracket
+        ['{{', '}}', '{{'],               // Mustache-style
+    ];
+
+    $delimiters = $_delimiters ?? $defaultDelimiters;
+
+    // Parse Arrays
+    if (is_array($_arrEntry) && count($_arrEntry) >= 1) {
+        foreach ($_arrEntry as $key => $value) {
+            if (!is_array($value)) {
+                $arrPrefix = explode("|", $_prefix);
+                foreach ($arrPrefix as $prefix) {
+                    // Try all delimiter styles
+                    foreach ($delimiters as list($open, $close, $detect)) {
+                        // Performance: Only process if delimiter exists
+                        if (strpos($strParsed, $detect) === false) continue;
+
+                        // Support both _ and . in variable names
+                        $varName = $prefix . $key;
+                        $varNameDot = str_replace('_', '.', $varName);
+
+                        // Replace original name
+                        $strParsed = str_replace(
+                            $open . $varName . $close,
+                            stripslashes($value . ""),
+                            $strParsed
+                        );
+
+                        // Replace with dots
+                        if ($varName !== $varNameDot) {
+                            $strParsed = str_replace(
+                                $open . $varNameDot . $close,
+                                stripslashes($value . ""),
+                                $strParsed
+                            );
+                        }
+
+                        // Replace UPPERCASE
+                        $strParsed = str_replace(
+                            $open . strtoupper($varName) . $close,
+                            stripslashes($value . ""),
+                            $strParsed
+                        );
+
+                        // Replace UPPERCASE with dots
+                        if ($varName !== $varNameDot) {
+                            $strParsed = str_replace(
+                                $open . strtoupper($varNameDot) . $close,
+                                stripslashes($value . ""),
+                                $strParsed
+                            );
+                        }
+                    }
+                }
+            } else {
+                $strParsed = parseTemplate($strParsed, $value, $_prefix, $_clean, $delimiters);
+            }
+        }
+    }
+
+    // Parse CONFIGURATION
+    if (defined("CONFIGURATION")) {
+        foreach (CONFIGURATION as $key => $value) {
+            if (!is_array($value)) {
+                foreach ($delimiters as list($open, $close, $detect)) {
+                    if (strpos($strParsed, $detect) === false) continue;
+
+                    $keyDot = str_replace('_', '.', $key);
+
+                    $strParsed = str_replace($open . $key . $close, $value . "", $strParsed);
+                    if ($key !== $keyDot) {
+                        $strParsed = str_replace($open . $keyDot . $close, $value . "", $strParsed);
+                    }
+                }
+            }
+        }
+    }
+
+    // Parse Constants
+    $constants = ['VERSION', 'MODULE', 'CAPPS', 'BASEURL', 'BASEDIR', 'RANDOM'];
+    foreach ($constants as $const) {
+        if (defined($const) || $const === 'RANDOM') {
+            $val = $const === 'RANDOM' ? time() . "" : constant($const);
+
+            foreach ($delimiters as list($open, $close, $detect)) {
+                if (strpos($strParsed, $detect) === false) continue;
+
+                $constLower = strtolower($const);
+                $constDot = str_replace('_', '.', $constLower);
+
+                // Lowercase
+                $strParsed = str_replace($open . $constLower . $close, $val, $strParsed);
+                if ($constLower !== $constDot) {
+                    $strParsed = str_replace($open . $constDot . $close, $val, $strParsed);
+                }
+
+                // Uppercase
+                $strParsed = str_replace($open . $const . $close, $val, $strParsed);
+                $constDotUpper = str_replace('_', '.', $const);
+                if ($const !== $constDotUpper) {
+                    $strParsed = str_replace($open . $constDotUpper . $close, $val, $strParsed);
+                }
+            }
+        }
+    }
+
+    // Clean unparsed placeholders
+    if ($_clean) {
+        foreach ($delimiters as list($open, $close, $detect)) {
+            if (strpos($strParsed, $detect) === false) continue;
+
+            // Escape special regex characters
+            $openEsc = preg_quote($open, '/');
+            $closeEsc = preg_quote($close, '/');
+
+            $strParsed = preg_replace('/' . $openEsc . '.*?' . $closeEsc . '/s', '', $strParsed);
+        }
+    }
+
+    return $strParsed;
+}
+
 function CBLog($data, string $message = ''): void
 {
    // if (defined('DEBUG_MODE') && DEBUG_MODE) {
@@ -325,4 +471,16 @@ function CBLog($data, string $message = ''): void
         $logMessage = $message ? $message . ': ' : '';
         error_log($logMessage . print_r($data, true));
     //}
+}
+
+/**
+ * Global localize helper function
+ *
+ * @param string $text Text to localize
+ * @param string|null $lang Optional language code (null = auto-detect)
+ * @return string Localized text or original if not found
+ */
+function localize(string $text, ?string $lang = null): string
+{
+    return \Capps\Modules\Core\Classes\CBCore::localize($text, $lang);
 }

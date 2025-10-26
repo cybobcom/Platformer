@@ -93,7 +93,7 @@ class CBDatabase
     {
         // Try loading from various sources
         $configPaths = [
-            $_SERVER['DOCUMENT_ROOT'] . '/../src/capps/inc.localconf.php',
+            $_SERVER['DOCUMENT_ROOT'] . '/../src/inc.localconf.php',
             dirname(__DIR__, 3) . '/inc.localconf.php'
         ];
 /*

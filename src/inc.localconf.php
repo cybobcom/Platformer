@@ -54,7 +54,7 @@ if (isset($_SERVER['DOCUMENT_ROOT'])) {
 // SOURCEDIR: Where /src/ folder is
 // This file is in: /src/capps/inc.localconf.php
 // We want: /src/
-$arrConf['sourcedir'] = dirname(dirname(__FILE__)) . '/';
+$arrConf['sourcedir'] = dirname(__FILE__) . '/';
 
 // BASEURL: From functions.php (this one works correctly)
 $arrConf['baseurl'] = detectBaseUrl();

@@ -113,7 +113,7 @@ try {
     require_once $functionsFile;
 
     // 2. Load configuration
-    $configFile = $basePath . 'capps/inc.localconf.php';
+    $configFile = $basePath . 'inc.localconf.php';
     if (!file_exists($configFile)) {
         throw new \RuntimeException('Configuration file not found: ' . $configFile);
     }

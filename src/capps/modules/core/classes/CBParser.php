@@ -13,8 +13,8 @@ class CBParser {
     {
 
         $strTemplate = $this->parseCBNavigationTag($strTemplate,$objCS,$objC);
-
         $strTemplate = $this->parseCBCheckTag($strTemplate,$objCS,$objC);
+        $strTemplate = $this->parseCBLocalizeTag($strTemplate); // NEU
 
         return $strTemplate;
 
@@ -844,6 +844,40 @@ class CBParser {
             }
 
         }
+        return $strTemplate;
+    }
+
+    /**
+     * Parse localize tags
+     * <cb:localize>Text</cb:localize>
+     * <cb:localize lang="en">Text</cb:localize>
+     */
+    function parseCBLocalizeTag($strTemplate) {
+
+        if (!strstr($strTemplate, '<cb:localize')) {
+            return $strTemplate;
+        }
+
+        // Pattern: <cb:localize lang="en">Text</cb:localize>
+        preg_match_all('/<cb:localize(.*?)>(.*?)<\/cb:localize>/s', $strTemplate, $matches);
+
+        foreach ($matches[0] as $index => $fullMatch) {
+            $attributes = $matches[1][$index];
+            $text = $matches[2][$index];
+
+            // Parse lang attribute if present
+            $lang = null;
+            if (preg_match('/lang=["\']([^"\']+)["\']/', $attributes, $langMatch)) {
+                $lang = $langMatch[1];
+            }
+
+            // Translate
+            $translated = localize(trim($text), $lang);
+
+            // Replace in template
+            $strTemplate = str_replace($fullMatch, $translated, $strTemplate);
+        }
+
         return $strTemplate;
     }
 

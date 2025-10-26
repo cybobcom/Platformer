@@ -31,6 +31,12 @@ class CBCore
     private string $responseType = 'html';
     private bool $isProduction = false;
 
+    // Localization - static properties
+    private static string $currentLanguage = 'en';
+    private static string $defaultLanguage = 'en';  // NEU: Master-Sprache
+    private static array $translations = [];
+    private static array $loadedModules = [];
+
     public function __construct()
     {
         $this->parser = new CBParser();
@@ -610,5 +616,78 @@ class CBCore
         ];
 
         return str_replace(array_keys($replacements), array_values($replacements), $template);
+    }
+
+    /**
+     * Set current language
+     */
+    public static function setLanguage(string $lang): void
+    {
+        self::$currentLanguage = $lang;
+    }
+
+    /**
+     * Get current language
+     */
+    public static function getLanguage(): string
+    {
+        return self::$currentLanguage;
+    }
+
+    /**
+     * Set default/master language
+     */
+    public static function setDefaultLanguage(string $lang): void
+    {
+        self::$defaultLanguage = $lang;
+    }
+
+    /**
+     * Get default/master language
+     */
+    public static function getDefaultLanguage(): string
+    {
+        return self::$defaultLanguage;
+    }
+
+    /**
+     * Localize text
+     */
+    public static function localize(string $text, ?string $lang = null): string
+    {
+        $lang = $lang ?? self::$currentLanguage;
+
+        // Check if translation exists
+        $key = $lang . ':' . $text;
+        if (isset(self::$translations[$key])) {
+            return self::$translations[$key];
+        }
+
+        // Return original text
+        return $text;
+    }
+
+    /**
+     * Load module translations
+     */
+    public static function loadModuleTranslations(string $module): void
+    {
+        if (isset(self::$loadedModules[$module])) {
+            return;
+        }
+
+        $lang = self::$currentLanguage;
+        $langFile = CAPPS . "modules/{$module}/localize/{$lang}.php";
+
+        if (file_exists($langFile)) {
+            $moduleTranslations = include($langFile);
+            if (is_array($moduleTranslations)) {
+                foreach ($moduleTranslations as $source => $target) {
+                    self::$translations[$lang . ':' . $source] = $target;
+                }
+            }
+        }
+
+        self::$loadedModules[$module] = true;
     }
 }

@@ -37,7 +37,7 @@ $arrGlobalTranslation["1"]["keine aktuelle Informationen"] = "keine aktuelle Inf
 $arrGlobalTranslation["2"]["keine aktuelle Informationen"] = "No current Information";
 */
 
-$file = file_get_contents(CAPPS . "modules/core/localization/localization.txt");
+$file = file_get_contents(CAPPS . "modules/core/localize/localization.txt");
 //echo "file<pre>"; print_r($file); echo "</pre>";
 
 $arrFile = explode("\n",$file);

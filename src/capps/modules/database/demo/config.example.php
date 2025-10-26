@@ -27,6 +27,7 @@ $arrDatabaseConfiguration = [
     'DB_PORT' => DB_PORT,
     'DB_CHARSET' => DB_CHARSET
 ];
+define('DATABASE', $arrDatabaseConfiguration);
 
 // Error reporting for demos
 error_reporting(E_ALL);
