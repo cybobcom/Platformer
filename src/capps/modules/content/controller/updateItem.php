@@ -45,12 +45,10 @@ if ( $_REQUEST['id'] != "" ) {
     }
 
 
-    //
-    $strModuleName = CBgetModuleName("###MODULE###");
-//CBLog($strModuleName);
+
 
 //
-    $objTmp = CBinitObject(ucfirst($strModuleName),$_REQUEST['id']);
+    $objTmp = CBinitObject("Content",$_REQUEST['id']);
 //CBLog($objTmp);
 	
 		//$objTmp = CBinitObject("Address",$_REQUEST['id']);

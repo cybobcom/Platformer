@@ -1,6 +1,6 @@
 <?php
 
-global $objPlattformUser;
+global $objPlatformUser;
 
 //
 // init
@@ -9,7 +9,7 @@ global $objPlattformUser;
 //
 $arrSave = array();
 $arrSave["settings_address_search"] = $_REQUEST["search"] ?? "";
-$objPlattformUser->saveContentUpdate($_SESSION[PLATTFORM_IDENTIFIER]["login_user_identifier"],$arrSave);
+$objPlatformUser->saveContentUpdate($_SESSION[PLATFORM_IDENTIFIER]["login_user_identifier"],$arrSave);
 
 
 $objTmp = CBinitObject("Address");

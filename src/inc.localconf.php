@@ -77,14 +77,19 @@ $arrConf['cbinit'] = [
             'priority' => 100,
             'enabled' => true
         ],
+        'admin' => [
+            'path' => $arrConf['sourcedir'] . 'admin/',
+            'priority' => 200,
+            'enabled' => true
+        ],
         'agent' => [
             'path' => $arrConf['sourcedir'] . 'agent/',
-            'priority' => 200,
+            'priority' => 300,
             'enabled' => true
         ],
         'custom' => [
             'path' => $arrConf['sourcedir'] . 'custom/',
-            'priority' => 300,
+            'priority' => 400,
             'enabled' => true
         ]
     ],
@@ -98,6 +103,8 @@ $arrConf['cbinit'] = [
 
 // Define convenience constants from cbinit vendors
 define('CAPPS', $arrConf['cbinit']['vendors']['capps']['path']);
+define('ADMIN', $arrConf['cbinit']['vendors']['admin']['path']);
+define('AGENT', $arrConf['cbinit']['vendors']['agent']['path']);
 define('CUSTOM', $arrConf['cbinit']['vendors']['custom']['path']);
 
 // ================================================================

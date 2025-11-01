@@ -34,11 +34,12 @@ class CBObject
      * Constructor - supports both patterns
      */
     public function __construct(
-        mixed $id = null,
+        mixed   $id = null,
         ?string $table = null,
         ?string $primaryKey = null,
-        ?array $dbConfig = null
-    ) {
+        ?array  $dbConfig = null
+    )
+    {
         // Database Connection
         $this->objDatabase = new CBDatabase($dbConfig);
 
@@ -73,7 +74,11 @@ class CBObject
 
         $this->arrDatabaseColumns = [];
         foreach ($columns as $column) {
-            $this->arrDatabaseColumns[$column['Field']] = $column['Type'];
+            $this->arrDatabaseColumns[$column['Field']] = [
+                'type' => $column['Type'],
+                'null' => $column['Null'] === 'YES',
+                'default' => $column['Default']
+            ];
             $this->arrAttributes[$column['Field']] = '';
         }
     }
@@ -266,8 +271,7 @@ class CBObject
         if (isset($data['localize']) && is_array($data['localize'])) {
             $localizeXML = $this->buildLocalizeXML($data['localize']);
             $data['localize'] = $localizeXML;
-        }
-        // Priority 2: Language parameter specified
+        } // Priority 2: Language parameter specified
         elseif ($lang !== null) {
             $defaultLang = 'de';
             if (class_exists('\Capps\Modules\Core\Classes\CBCore')) {
@@ -297,6 +301,7 @@ class CBObject
 
         // Process XML fields
         $processedData = $this->processXmlFieldsForSave($data);
+        $processedData = $this->sanitizeDataTypes($processedData); // NEU
 
         // Auto-generate UUID if Primary Key ends with _uid
         if (str_ends_with($this->strPrimaryKey, '_uid') && !isset($processedData[$this->strPrimaryKey])) {
@@ -312,6 +317,11 @@ class CBObject
 
         return $insertId;
     }
+
+    function saveContentNew($arrContent, $_forceOverwritePK = false, $_flagReturnSql = NULL){
+        return $this->create($arrContent);
+    }
+
 
     /**
      * Update record
@@ -380,8 +390,7 @@ class CBObject
         if (isset($data['localize']) && is_array($data['localize'])) {
             $localizeXML = $this->buildLocalizeXML($data['localize']);
             $data['localize'] = $localizeXML;
-        }
-        // Priority 2: Language parameter specified
+        } // Priority 2: Language parameter specified
         elseif ($lang !== null) {
             $defaultLang = 'de';
             if (class_exists('\Capps\Modules\Core\Classes\CBCore')) {
@@ -416,6 +425,7 @@ class CBObject
 
         // Process XML fields
         $processedData = $this->processXmlFieldsForSave($data);
+        $processedData = $this->sanitizeDataTypes($processedData); // NEU
 
         $success = $this->objDatabase->update(
             $this->strTable,
@@ -423,12 +433,17 @@ class CBObject
             "`{$this->strPrimaryKey}` = ?",
             [$updateId]
         );
+        //CBLog($this->getLastError());
 
         if ($success && $updateId == $this->identifier) {
             $this->load($updateId);
         }
 
         return $success;
+    }
+
+    function saveContentUpdate($id, $arrContent, $_flagReturnSql = NULL) {
+        return $this->update($arrContent, $id);
     }
 
     /**
@@ -738,11 +753,13 @@ class CBObject
 
     /**
      * Legacy getAllEntries - for old code compatibility with data_ sorting
+     * @deprecated Verwende stattdessen newMethod()
      */
+    //#[Deprecated(reason: "Diese Methode ist veraltet. Verwenden Sie stattdessen neueMethode().", replacement: "findAll()")]
     public function getAllEntries(
         ?string $order = null,
-        string $direction = "ASC",
-        array $arrCondition = [],
+        ?string $direction = null,
+        ?array $arrCondition = null,
         ?string $selection = null,
         string $result = "",
         ?int $limit = null
@@ -753,6 +770,7 @@ class CBObject
         if ($direction) $options['direction'] = $direction;
         if ($selection) $options['select'] = $selection;
         if ($limit) $options['limit'] = $limit;
+        if ( $arrCondition == NULL ) $arrCondition = [];
 
         return $this->findAll($arrCondition, $options);
     }
@@ -869,6 +887,14 @@ class CBObject
             $data['date_created'] = date('Y-m-d H:i:s');
             return $this->create($data);
         }
+    }
+
+    /**
+     * Legacy getAllEntries - for old code compatibility with data_ sorting
+     * @deprecated Verwende stattdessen newMethod()
+     */
+    function saveObject($arrCondition, $arrSave){
+        $this->save($arrSave,$arrCondition);
     }
 
     /**
@@ -1159,6 +1185,22 @@ class CBObject
         }
 
         return $xml;
+    }
+
+    private function sanitizeDataTypes(array $data): array
+    {
+        foreach ($data as $col => $val) {
+            if (!isset($this->arrDatabaseColumns[$col]) || $val !== '') continue;
+
+            $colInfo = $this->arrDatabaseColumns[$col];
+
+            // Leerer String für INT
+            if (preg_match('/int\(/', strtolower($colInfo['type']))) {
+                // NULL erlaubt? → NULL, sonst Default oder 0
+                $data[$col] = $colInfo['null'] ? null : ($colInfo['default'] ?? 0);
+            }
+        }
+        return $data;
     }
 
 }

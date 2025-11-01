@@ -15,24 +15,27 @@ if ( isset($_REQUEST["login"]) && $_REQUEST["login"] != "" && isset($_REQUEST["p
 
     //
     $objTmp = CBinitObject("Address");
+    //CBLog($objTmp);
 
-    /*
+
     $arrCondition = array();
     $arrCondition["active"] = "1";
     $arrCondition["login"] = $_REQUEST["login"];
     $arrCondition["password"] = $_REQUEST["password"];
 
     $arrResult = $objTmp->getAllEntries(NULL,NULL,$arrCondition);
-    */
 
+
+    /*
     $sql  = "SELECT address_uid, customer_number FROM capps_address WHERE login = '".mysqli_real_escape_string($objTmp->objDatabase->intDBHandler,$login)."' AND password = '".mysqli_real_escape_string($objTmp->objDatabase->intDBHandler,$password)."' AND active = 1";
-    $arrResult = $objTmp->get($sql);
+    $arrResult = $objTmp->query($sql);
+    */
 
     if ( is_array($arrResult) && count($arrResult) > 0 && $arrResult[0]["address_uid"] != "" ) {
 
         //
-        $_SESSION[PLATTFORM_IDENTIFIER]["login_verified"] = "1";
-        $_SESSION[PLATTFORM_IDENTIFIER]["login_user_identifier"] = $arrResult[0]["address_uid"];
+        $_SESSION[PLATFORM_IDENTIFIER]["login_verified"] = "1";
+        $_SESSION[PLATFORM_IDENTIFIER]["login_user_identifier"] = $arrResult[0]["address_uid"];
 
         //
         $dictResponse["response"] = "success";

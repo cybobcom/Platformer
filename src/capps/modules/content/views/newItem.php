@@ -4,12 +4,10 @@
 // new
 //
 
-//
-$strModuleName = CBgetModuleName("###MODULE###");
-//CBLog($strModuleName);
+
 
 //
-$objTmp = CBinitObject(ucfirst($strModuleName));
+$objTmp = CBinitObject("Content");
 //CBLog($objTmp);
 
 //$objTmp = new \capps\modules\database\classes\CBObject(NULL, "capps_address", "address_id");
@@ -65,16 +63,19 @@ $objTmp = CBinitObject(ucfirst($strModuleName));
 
             var tmp = $('#modal_item_new').serializeArray();
 
-            var url = "<?php echo BASEURL; ?>controller/<?php echo $strModuleName; ?>/insertItem/";
+            var url = "<?php echo BASEURL; ?>controller/content/insertItem/";
 
             $.ajax({
                 'url': url,
                 'type': 'POST',
                 'data': tmp,
+                //dataType: 'text',  // <<< wichtig
+
                 'success': function (result) {
                     //process here
                     //alert( "Load was performed. "+url );
                     //$('#myModalDetails').html(result);
+
 
                     if (result.response == "success") {
 

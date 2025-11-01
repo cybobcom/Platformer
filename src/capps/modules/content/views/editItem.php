@@ -1,18 +1,5 @@
 <?php
-
-//
-// edit
-//
-//echo "dsf".__FILE__;
-//echo "_REQUEST<pre>"; print_r($_REQUEST); echo "</pre>";
-
 use capps\modules\database\classes\CBObject;
-
-//
-$strModuleName = CBgetModuleName("###MODULE###");
-//CBLog($strModuleName);
-
-
 
 if ( $_REQUEST['id'] != "" ) {
 	
@@ -21,7 +8,7 @@ if ( $_REQUEST['id'] != "" ) {
 	//echo "objTmp<pre>"; print_r($objTmp); echo "</pre>";
 
     //
-    $objTmp = CBinitObject(ucfirst($strModuleName),$_REQUEST["id"]);
+    $objTmp = CBinitObject("Content",$_REQUEST["id"]);
     //CBLog($objTmp);
 
     $strEasyAdmin = "";
@@ -289,12 +276,14 @@ if ( $_REQUEST['id'] != "" ) {
         var tmp = $('#modal_item_update').serializeArray();
         // alert( "doModalCategoryEdit "+tmp );
 
-        var url = "<?php echo BASEURL; ?>controller/<?php echo $strModuleName; ?>/updateItem/";
+        var url = "<?php echo BASEURL; ?>controller/content/updateItem/";
 
         $.ajax({
             'url': url,
             'type': 'POST',
             'data': tmp,
+            dataType: 'text',  // <<< wichtig
+
             'success': function(result){
                 //process here
                 //alert( "Load was performed. "+url );

@@ -118,6 +118,28 @@ class CBController
     }
 
     /**
+     * Magic method to delegate calls to objModule
+     * Allows direct access to CBObject methods without getModule()
+     *
+     * Example: $controller->save() instead of $controller->getModule()->save()
+     *
+     * @param string $method Method name
+     * @param array $args Method arguments
+     * @return mixed
+     * @throws \BadMethodCallException
+     */
+    public function __call($method, $args)
+    {
+        if ($this->objModule && method_exists($this->objModule, $method)) {
+            return $this->objModule->$method(...$args);
+        }
+
+        throw new \BadMethodCallException(
+            "Method '{$method}' not found in " . get_class($this) . " or {$this->moduleName}"
+        );
+    }
+
+    /**
      * Get module object
      *
      * @return CBObject|null

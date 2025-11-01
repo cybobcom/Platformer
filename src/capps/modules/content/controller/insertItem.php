@@ -2,12 +2,10 @@
 
 //echo "<pre>"; print_r($_REQUEST); echo "</pre>";
 
-//
-$strModuleName = CBgetModuleName("###MODULE###");
-//CBLog($strModuleName);
+
 
 //
-$objTmp = CBinitObject(ucfirst($strModuleName));
+$objTmp = CBinitObject("Content");
 //CBLog($objTmp);
 
 $dictResponse = array();
@@ -18,7 +16,7 @@ $dictResponse["description"] = "something went wrong";
 if (is_array($_REQUEST['save'])) {
 
     //
-    $objTmp = CBinitObject(ucfirst($strModuleName));
+    $objTmp = CBinitObject("Content");
     //$objTmp = new \capps\modules\database\classes\CBObject(NULL, "capps_address", "address_id");
 
 
@@ -31,7 +29,7 @@ if (is_array($_REQUEST['save'])) {
     $intID = $objTmp->saveContentNew($arrSave);
 
     //
-    //$objTmp = CBinitObject(ucfirst($strModuleName),$intID);
+    //$objTmp = CBinitObject("Content",$intID);
 
     //
     $dictResponse["response"] = "success";

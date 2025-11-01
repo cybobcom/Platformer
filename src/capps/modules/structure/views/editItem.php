@@ -8,9 +8,6 @@
 
 use capps\modules\database\classes\CBObject;
 
-//
-$strModuleName = "###MODULE###";
-//CBLog($strModuleName);
 
 
 if ($_REQUEST['id'] != "") {
@@ -160,29 +157,42 @@ if ($_REQUEST['id'] != "") {
 
 
             var tmp = $('#modal_item_update').serializeArray();
-            // alert( "doModalCategoryEdit "+tmp );
+             //alert( JSON.stringify(tmp) );
 
-            var url = "<?php echo BASEURL; ?>controller/<?php echo $strModuleName; ?>/updateItem/";
+            var url = "<?php echo BASEURL; ?>controller/structure/updateItem/";
+           // alert(url);
+
+
 
             $.ajax({
-                'url': url,
-                'type': 'POST',
-                'data': tmp,
-                'success': function (result) {
-                    //process here
-                    //alert( "Load was performed. "+url );
+                url: url,
+                type: 'POST',
+                data: tmp,
+                dataType: 'text',  // <<< wichtig
+                success: function(result) {
+                    alert(result);
+
 
                     if (typeof window.mountedApp !== 'undefined') {
                         // vue.js
                         globalDetailModal.hide();
                         window.mountedApp.listPages();
                         window.mountedApp.listElements('<?php echo $objTmp->getAttribute('structure_id'); ?>');
+                        window.mountedApp.showPage('<?php echo $objTmp->getAttribute('structure_id'); ?>');
+
                     } else {
                         // classic
                         globalDetailModal.hide();
                         listItems();
 
                     }
+
+                },
+                error: function(xhr, status, error) {
+                    console.log('Status:', status);
+                    console.log('Error:', error);
+                    console.log('Response:', xhr.responseText);
+                    //alert('AJAX-Fehler siehe Konsole');
                 }
             });
 

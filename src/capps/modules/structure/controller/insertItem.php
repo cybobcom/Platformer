@@ -2,9 +2,6 @@
 
 //echo "<pre>"; print_r($_REQUEST); echo "</pre>";
 
-//
-$strModuleName = CBgetModuleName(__FILE__);
-//CBLog($strModuleName);
 
 //
 $objTmp = CBinitObject("Structure");

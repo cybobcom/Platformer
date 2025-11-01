@@ -4,9 +4,7 @@
 // new
 //
 
-//
-$strModuleName = "###MODULE###";
-//CBLog($strModuleName);
+
 
 //
 $objTmp = CBinitObject("Structure");
@@ -59,7 +57,7 @@ $objTmp = CBinitObject("Structure");
 
             var tmp = $('#modal_item_new').serializeArray();
 
-            var url = "<?php echo BASEURL; ?>controller/<?php echo $strModuleName; ?>/insertItem/";
+            var url = "<?php echo BASEURL; ?>controller/structure/insertItem/";
 
             $.ajax({
                 'url': url,

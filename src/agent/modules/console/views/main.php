@@ -4,7 +4,7 @@
 
 
 //
-global $objPlattformUser;
+global $objPlatformUser;
 
 
 $objTmp = CBinitObject("Agent");
@@ -14,7 +14,7 @@ $objTmp = CBinitObject("Agent");
 //$objTmp = new Content();
 //echo "objTmp<pre>"; print_r($objTmp); echo "</pre>";exit;
 
-$user_email = $objPlattformUser->getAttribute("user_email");
+$user_email = $objPlatformUser->getAttribute("user_email");
 
 $arrCondition = array();
 $arrCondition["deleted"] = "NOT 1";

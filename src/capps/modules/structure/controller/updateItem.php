@@ -2,16 +2,20 @@
 
 //echo "<pre>"; print_r($_REQUEST); echo "</pre>";exit;
 
-if ( $_REQUEST['id'] != "" ) {
+$dictResponse = array();
+$dictResponse["response"] = "error";
+$dictResponse["description"] = "something went wrong";
+
+if ( isset($_REQUEST['id']) &&$_REQUEST['id'] != "" ) {
 	
 	//echo "<pre>"; print_r($_REQUEST); echo "</pre>";
 	
 	//if ( $_REQUEST['action'] == "saveModalNewCategory" ) {
 		
 		$arrSave = array();
-		$arrSave = $_REQUEST['save'];
+		if ( isset( $_REQUEST['save']) ) $arrSave = $_REQUEST['save'];
  		$arrSave['date_updated'] = date("Y-m-d H:i:s");
-
+    //echo "<pre>"; print_r($arrSave); echo "</pre>";
 
     //
     // addressgroups
@@ -45,19 +49,17 @@ if ( $_REQUEST['id'] != "" ) {
     }
 
 
-    //
-    $strModuleName = CBgetModuleName(__FILE__);
-//CBLog($strModuleName);
 
 //
     $objTmp = CBinitObject("Structure",$_REQUEST['id']);
 //CBLog($objTmp);
+
 	
 		//$objTmp = CBinitObject("Address",$_REQUEST['id']);
     //$objTmp = new \capps\modules\database\classes\CBObject($_REQUEST['id'],"capps_address","address_id");
 
 		$res = $objTmp->saveContentUpdate($_REQUEST['id'],$arrSave);
-
+    //CBLog($res);
 		//$objTmp = CBinitObject("Address",$_REQUEST['id']);
     //$objTmp = new \capps\modules\database\classes\CBObject($_REQUEST['id'],"capps_address","address_id");
 
@@ -72,8 +74,17 @@ if ( $_REQUEST['id'] != "" ) {
     //
     $objRoute = CBinitObject("Route");
     $objRoute->generateStructureRoute($objTmp->identifier);
+
+
+
 	
 }
 
+
+//exit;
+$output = json_encode($dictResponse, JSON_HEX_APOS);
+
+header('Content-Type: application/json');
+echo $output;
 
 ?>

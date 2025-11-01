@@ -1,6 +1,6 @@
 <?php
 
-global $objPlattformUser;
+global $objPlatformUser;
 
 //
 // check user login
@@ -93,7 +93,7 @@ if ( $_SESSION['aid'] == "" ) {
 <div class="position-absolute" style="right: 60px; width:200px;padding-top:5px;">
     <div style=" position: absolute;">
         <span style="flo2at:right; position:absolute; right:10px; top:9px; visibility:hidden; color: gray; font-size: 12px;" class="id_search_reset bi bi-x-lg"></span>
-        <input name="search" type="text" class="form-control foDEVrmular4 form-control-sm" value="<?php echo $objPlattformUser->getAttribute("settings_address_search"); ?>" placeholder="Finden" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"  id="filter_search" />
+        <input name="search" type="text" class="form-control foDEVrmular4 form-control-sm" value="<?php echo $objPlatformUser->getAttribute("settings_address_search"); ?>" placeholder="Finden" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"  id="filter_search" />
     </div>
 </div>
 <script>
