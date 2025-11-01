@@ -104,7 +104,7 @@ if ( $_REQUEST['id'] != "" ) {
       <!-- 		<span onclick="deleteItem('<?php echo $objTmp->getAttribute('content_id'); ?>')" class="me-auto bi bi-trash"></span> -->
       
               <button type="button" class="btn btn-default" data-bs-dismiss="modal">Schlie&szlig;en</button>
-              <button type="button" class="btn btn-primary classid_button_update" >Speichern</button>
+          <button type="button" class="btn btn-primary classid_button_update" ><cb:localize>Save</cb:localize></button>
             </div>
       
 										

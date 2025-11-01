@@ -188,7 +188,7 @@ try {
     $objPlatformUser->setAttribute("user_email", $user_email);
 
     // 8. Localization
-    require_once CAPPS . "modules/core/localization.php";
+    //require_once CAPPS . "modules/core/localization.php";
 
     // 9. Load structure
     $objStructure = CBinitObject("Structure");

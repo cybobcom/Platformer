@@ -32,7 +32,7 @@ class CBCore
     private bool $isProduction = false;
 
     // Localization - static properties
-    private static string $currentLanguage = 'en';
+    private static string $currentLanguage = 'de';
     private static string $defaultLanguage = 'en';  // NEU: Master-Sprache
     private static array $translations = [];
     private static array $loadedModules = [];
@@ -655,6 +655,9 @@ class CBCore
      */
     public static function localize(string $text, ?string $lang = null): string
     {
+        CBLog($lang);
+        CBLog(self::$currentLanguage);
+
         $lang = $lang ?? self::$currentLanguage;
 
         // Check if translation exists
