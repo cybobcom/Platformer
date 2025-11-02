@@ -137,7 +137,7 @@ class CBParser {
                 if ( $sid == "" ) continue;
 
                 // self
-                if ( $arrAttributes['ignore'] ?? "" == "self" ) {
+                if ( ($arrAttributes['ignore'] ?? "") == "self" ) {
                     $request_sid = "";
                     if ( isset($_REQUEST["structure_id"]) && $_REQUEST["structure_id"] != "" ) $request_sid= $_REQUEST["structure_id"];
                     if ( $sid == $request_sid ) {
@@ -145,10 +145,23 @@ class CBParser {
                     }
                 }
 
-                // get common navigation ids if type is not sitemap
-                if ( isset($arrAttributes['type']) && $arrAttributes['type'] != "sitemap" ) {
+                //
+                $type = $arrAttributes['type'] ?? "";
 
-                    if ( $arrAttributes['type'] != "pulldown" ) {
+                // get common navigation ids if type is not sitemap
+                if ( $type != "sitemap" ) {
+
+                    // 2025-11-01 Bob:
+                    if ( ($arrAttributes['ignore']??"") != "" ) {
+                        $arrAttributes['ignore'] = str_replace("|",",",$arrAttributes['ignore']);
+                        $arrIgnore = explode(",",$arrAttributes['ignore']);
+                        if ( in_array($sid, $arrIgnore) ) {
+                            continue;
+                        }
+                    }
+
+                    //
+                    if ( $type != "pulldown" ) {
 
                     } else {
                         //echo "pulldown<br>";
@@ -168,6 +181,60 @@ class CBParser {
                             continue;
                         }
                     }
+
+                    $arrTmpList = $dictStructure['path'];
+
+                    $boolList = true;
+                    if ( is_array($arrTmpList) ) {
+                        foreach ( $arrTmpList as $runList=>$valueList ) {
+                            if ( $valueList == "" ) continue;
+
+                            //if ( !in_array($valueList,$arrAlreadyChecked) ) $boolList = false;
+                        }
+                    }
+                    if ( $boolList != true ) continue;
+
+
+                    $boolList = true;
+                    $entry = "";
+                    if ( isset($arrAttributes['entry']) && $arrAttributes['entry'] != "" ) $entry = $arrAttributes['entry'];
+                    if ( strstr($entry,"###") ) {
+                        $entry = str_replace("###page_structure_id###",$_REQUEST['structure_id'],$entry);
+                    }
+                    //CBLog($entry);
+
+                    if ( $entry != "" ) {
+
+                        $arrTmpPath = $dictStructure['path'];
+                        //CBLog($arrTmpPath);
+
+                        if ( !in_array($entry,$arrTmpPath) ) {
+                            $arrAlreadyChecked[] = $sid;
+                            $boolList = false;
+
+                        }
+                        if ( ($arrAttributes['entry_ignore_self']??"") != "1" ) {
+                            if ( $sid == $entry ) $boolList = true;
+                        } else {
+                            $arrAlreadyChecked[] = $sid;
+                        }
+
+                        if ( ($arrAttributes['ignore']??"") == "self" ) {
+                            if ( $sid == $entry ) {
+                                $arrAlreadyChecked[] = $sid;
+                                $boolList = false;
+                            }
+                        }
+
+                        // only children
+                        if ( ($arrAttributes['entry_only_children']??"") == "1" ) {
+                            $tmp = $dictStructure['path'][0];
+                            if ( $entry != $tmp ) $boolList = false;
+                        }
+
+                    }
+                    if ( $boolList != true ) continue;
+
 
                 } else {
                     // sitemap - only if whole path is active
@@ -204,13 +271,13 @@ class CBParser {
                             $boolList = false;
 
                         }
-                        if ( $arrAttributes['entry_ignore_self']??"" != "1" ) {
+                        if ( ($arrAttributes['entry_ignore_self']??"") != "1" ) {
                             if ( $sid == $entry ) $boolList = true;
                         } else {
                             $arrAlreadyChecked[] = $sid;
                         }
 
-                        if ( $arrAttributes['ignore']??"" == "self" ) {
+                        if ( ($arrAttributes['ignore']??"") == "self" ) {
                             if ( $sid == $entry ) {
                                 $arrAlreadyChecked[] = $sid;
                                 $boolList = false;
@@ -218,7 +285,7 @@ class CBParser {
                         }
 
                             // only children
-                        if ( $arrAttributes['entry_only_children']??"" == "1" ) {
+                        if ( ($arrAttributes['entry_only_children']??"") == "1" ) {
                             $tmp = $dictStructure['path'][0];
                             if ( $entry != $tmp ) $boolList = false;
                         }
@@ -287,10 +354,10 @@ class CBParser {
                     // show in navigation
                     $tmp = "";
                     $tmp = $dictStructure['visible'];
-                    if ( $arrAttributes['ignoreShowInNavigation']??"" != "1" ) {
+                    if ( ($arrAttributes['ignoreShowInNavigation']??"") != "1" ) {
                         if ( $tmp != "1" ) continue;
                     }
-                    if ( $arrAttributes['ignoreVisible']??"" != "1" ) {
+                    if ( ($arrAttributes['ignoreVisible']??"") != "1" ) {
                         if ( $tmp != "1" ) continue;
                     }
 
@@ -305,14 +372,14 @@ class CBParser {
                     if (!empty($tmp) && $tmp <= time()  ) continue;
 
                     // normal
-                    if ( $arrAttributes['level'.$level]??"" != "" ) {
+                    if ( ($arrAttributes['level'.$level]??"") != "" ) {
                         $str = $arrAttributes['level'.$level];
                     } else {
                         continue;
                     }
 
                     // onlyLevelAndChildren
-                    if ( $arrAttributes['onlyLevelAndChildren']??"" == "1" ) {
+                    if ( ($arrAttributes['onlyLevelAndChildren']??"") == "1" ) {
 
 
                         $arrTmp = $coreArrSortedStructure[$_REQUEST['structure_id']]['path'];
@@ -333,7 +400,7 @@ class CBParser {
                     }
 
                     // highlightPath
-                    if ( $arrAttributes['highlightPath']??"" == "1" ) {
+                    if ( ($arrAttributes['highlightPath']??"") == "1" ) {
 
                         if ( is_array($arrPathTmp)  && count($arrPathTmp)) {
                             if ( in_array($sid,$arrPathTmp) )  {
@@ -344,21 +411,21 @@ class CBParser {
                     }
 
                     // followPath
-                    if ( $arrAttributes['followPath']??"" == "1" ) {
+                    if ( ($arrAttributes['followPath']??"") == "1" ) {
                         if ( is_array($arrPathTmp) ) {
                             if ( in_array($sid,$arrPathTmp) ) $str = $arrAttributes['level'.$level.'_path'];
                         }
                     }
 
                     // spacer
-                    if ( $arrAttributes['level'.$level.'_spacer']??"" != "" ) {
+                    if ( ($arrAttributes['level'.$level.'_spacer']??"") != "" ) {
 
                         $str = $arrAttributes['level'.$level.'_spacer']."\n".$str;
                     }
 
 
                     // addtolevel haschildren
-                    if ( $arrAttributes['addtolevel'.$level.'_haschildren']??"" != "" ) {
+                    if ( ($arrAttributes['addtolevel'.$level.'_haschildren']??"") != "" ) {
                         $tmpStr = $arrAttributes['addtolevel'.$level.'_haschildren']."";
                         //echo $tmpStr."---";
                         if ( is_array($coreArrSortedStructure) ) {
@@ -377,7 +444,7 @@ class CBParser {
                     }
 
                     // addtolevel hasnochildren
-                    if ( $arrAttributes['addtolevel'.$level.'_hasnochildren']??"" != "" ) {
+                    if ( ($arrAttributes['addtolevel'.$level.'_hasnochildren']??"") != "" ) {
                         $tmpStr = $arrAttributes['addtolevel'.$level.'_hasnochildren']."";
                         //echo $tmpStr."---";
                         if ( is_array($coreArrSortedStructure) ) {
@@ -443,7 +510,7 @@ class CBParser {
                             if ( strstr($str,"###page_") ) { // 09-12-07 bob : performance optimization
                                 if ( is_array($vG) ) continue;
                                 $vG = stripslashes($vG);
-                                if ( $arrAttributes['modify_length']??"" != "" || ( isset($arrAttributes['level'.$level.'_modify_length']) && $arrAttributes['level'.$level.'_modify_length'] != "") ) {
+                                if ( ($arrAttributes['modify_length']??"") != "" || ( isset($arrAttributes['level'.$level.'_modify_length']) && $arrAttributes['level'.$level.'_modify_length'] != "") ) {
                                     $intLength = $arrAttributes['modify_length'];
                                     if ( $arrAttributes['level'.$level.'_modify_length'] != "") $intLength = $arrAttributes['level'.$level.'_modify_length'];
                                     if ( strlen($vG) > $intLength ) {
@@ -571,6 +638,7 @@ class CBParser {
                     $strTemplate = str_replace('###LINK###', ''.BASEURL.'index.php?sid='.$sid, $strTemplate);
                 } else {
                     // mod rewrite
+                    $strCacheName = "";
 
                     $tmp = $sid.'::'; // goes to normal page
 

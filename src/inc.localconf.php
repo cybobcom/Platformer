@@ -22,7 +22,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
 // ================================================================
 
 $arrConf = [];
-$arrConf['platform_name'] = "Admin";
+$arrConf['platform_name'] = "Platformer";
 $arrConf['platform_login'] = "dev25elop";
 $arrConf['platform_password'] = "de06velop";
 

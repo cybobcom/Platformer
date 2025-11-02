@@ -603,8 +603,23 @@ class CBObject
         // WHERE conditions
         if (!empty($conditions)) {
             $whereClauses = [];
+            /*
             foreach ($conditions as $key => $value) {
                 if (is_array($value)) {
+                    $placeholders = array_fill(0, count($value), '?');
+                    $whereClauses[] = "`{$key}` IN (" . implode(',', $placeholders) . ")";
+                    $params = array_merge($params, $value);
+                } else {
+                    $whereClauses[] = "`{$key}` = ?";
+                    $params[] = $value;
+                }
+            }
+            */
+            foreach ($conditions as $key => $value) {
+                // String "NULL" → IS NULL
+                if ($value === "NULL" || $value === 'NULL') {
+                    $whereClauses[] = "`{$key}` IS NULL";
+                } elseif (is_array($value)) {
                     $placeholders = array_fill(0, count($value), '?');
                     $whereClauses[] = "`{$key}` IN (" . implode(',', $placeholders) . ")";
                     $params = array_merge($params, $value);
@@ -675,9 +690,20 @@ class CBObject
         $params = [];
 
         $whereClauses = [];
+        /*
         foreach ($conditions as $key => $value) {
             $whereClauses[] = "`{$key}` = ?";
             $params[] = $value;
+        }
+        */
+        foreach ($conditions as $key => $value) {
+            // String "NULL" → IS NULL
+            if ($value === "NULL" || $value === 'NULL') {
+                $whereClauses[] = "`{$key}` IS NULL";
+            } else {
+                $whereClauses[] = "`{$key}` = ?";
+                $params[] = $value;
+            }
         }
         $where = 'WHERE ' . implode(' AND ', $whereClauses);
 
@@ -697,8 +723,23 @@ class CBObject
 
         if (!empty($conditions)) {
             $whereClauses = [];
+            /*
             foreach ($conditions as $key => $value) {
                 if (is_array($value)) {
+                    $placeholders = array_fill(0, count($value), '?');
+                    $whereClauses[] = "`{$key}` IN (" . implode(',', $placeholders) . ")";
+                    $params = array_merge($params, $value);
+                } else {
+                    $whereClauses[] = "`{$key}` = ?";
+                    $params[] = $value;
+                }
+            }
+            */
+            foreach ($conditions as $key => $value) {
+                // String "NULL" → IS NULL
+                if ($value === "NULL" || $value === 'NULL') {
+                    $whereClauses[] = "`{$key}` IS NULL";
+                } elseif (is_array($value)) {
                     $placeholders = array_fill(0, count($value), '?');
                     $whereClauses[] = "`{$key}` IN (" . implode(',', $placeholders) . ")";
                     $params = array_merge($params, $value);
@@ -1187,7 +1228,7 @@ class CBObject
         return $xml;
     }
 
-    private function sanitizeDataTypes(array $data): array
+    private function sanitizeDataTypesFIRST(array $data): array
     {
         foreach ($data as $col => $val) {
             if (!isset($this->arrDatabaseColumns[$col]) || $val !== '') continue;
@@ -1198,6 +1239,55 @@ class CBObject
             if (preg_match('/int\(/', strtolower($colInfo['type']))) {
                 // NULL erlaubt? → NULL, sonst Default oder 0
                 $data[$col] = $colInfo['null'] ? null : ($colInfo['default'] ?? 0);
+            }
+        }
+        return $data;
+    }
+
+    private function sanitizeDataTypesTRY(array $data): array
+    {
+        foreach ($data as $col => $val) {
+            if (!isset($this->arrDatabaseColumns[$col])) continue;
+
+            $colInfo = $this->arrDatabaseColumns[$col];
+
+            // String "NULL" → NULL
+            if ($val === "NULL" || $val === 'NULL') {
+                $data[$col] = null;
+                continue;
+            }
+
+            // Leerer String → NULL (wenn erlaubt)
+            if ($val === '' && $colInfo['null']) {
+                $data[$col] = null;
+            }
+        }
+        return $data;
+    }
+
+    private function sanitizeDataTypes(array $data): array
+    {
+        foreach ($data as $col => $val) {
+            if (!isset($this->arrDatabaseColumns[$col])) continue;
+
+            $colInfo = $this->arrDatabaseColumns[$col];
+
+            // String "NULL" → NULL
+            if ($val === "NULL" || $val === 'NULL') {
+                $data[$col] = null;
+                continue;
+            }
+
+            // Nur für leere Strings weitermachen
+            if ($val !== '') continue;
+
+            // Leerer String für INT → NULL oder Default
+            if (preg_match('/int\(/', strtolower($colInfo['type']))) {
+                $data[$col] = $colInfo['null'] ? null : ($colInfo['default'] ?? 0);
+            }
+            // Leerer String für andere NULL-erlaubte Felder → NULL
+            elseif ($colInfo['null']) {
+                $data[$col] = null;
             }
         }
         return $data;

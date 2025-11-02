@@ -300,6 +300,12 @@ class CBCore
         include $route['script'];
         $content = ob_get_clean();
 
+        // Load module translations
+        self::loadModuleTranslations($route['module']);
+
+        // Parse CB tags in views (same as templates)
+        $content = $this->parser->parse($content, null, null);
+
         // If script already set JSON header, return as-is
         if ($this->responseType === 'json') {
             return $content;
@@ -607,6 +613,7 @@ class CBCore
      */
     private function replacePlaceholders(string $template): string
     {
+        /*
         $replacements = [
             '###RANDOM###' => time(),
             '###BASEURL###' => BASEURL,
@@ -615,7 +622,13 @@ class CBCore
             '###CAPPS###' => CAPPS
         ];
 
-        return str_replace(array_keys($replacements), array_values($replacements), $template);
+        $template = str_replace(array_keys($replacements), array_values($replacements), $template);
+
+        $template = preg_replace('/###.*###/Us','',$template);
+        */
+        $template = parseTemplate($template, [], "", true);
+
+        return $template;
     }
 
     /**
@@ -655,9 +668,6 @@ class CBCore
      */
     public static function localize(string $text, ?string $lang = null): string
     {
-        CBLog($lang);
-        CBLog(self::$currentLanguage);
-
         $lang = $lang ?? self::$currentLanguage;
 
         // Check if translation exists
@@ -675,18 +685,59 @@ class CBCore
      */
     public static function loadModuleTranslations(string $module): void
     {
-        if (isset(self::$loadedModules[$module])) {
+        // Load core translations once (global base)
+        if (!isset(self::$loadedModules['core'])) {
+            $lang = self::$currentLanguage;
+            $coreLangFile = CAPPS . "modules/core/localize/{$lang}.php";
+
+            if (file_exists($coreLangFile)) {
+                $coreTranslations = include($coreLangFile);
+                if (is_array($coreTranslations)) {
+                    foreach ($coreTranslations as $source => $target) {
+                        self::$translations[$lang . ':' . $source] = $target;
+                    }
+                }
+            }
+            self::$loadedModules['core'] = true;
+        }
+
+        // Skip if empty or already loaded
+        if (empty($module) || isset(self::$loadedModules[$module])) {
             return;
         }
 
-        $lang = self::$currentLanguage;
-        $langFile = CAPPS . "modules/{$module}/localize/{$lang}.php";
+        // Parse vendor:module format
+        $vendor = null;
+        $actualModule = $module;
 
+        if (str_contains($module, ':')) {
+            [$vendor, $actualModule] = explode(':', $module, 2);
+        }
+
+        $lang = self::$currentLanguage;
+
+        // Load module translations (overrides core)
+        $langFile = CAPPS . "modules/{$actualModule}/localize/{$lang}.php";
         if (file_exists($langFile)) {
             $moduleTranslations = include($langFile);
             if (is_array($moduleTranslations)) {
                 foreach ($moduleTranslations as $source => $target) {
                     self::$translations[$lang . ':' . $source] = $target;
+                }
+            }
+        }
+
+        // Load vendor-specific translations (overrides module)
+        if ($vendor && isset(CONFIGURATION['cbinit']['vendors'][$vendor])) {
+            $vendorPath = CONFIGURATION['cbinit']['vendors'][$vendor]['path'] ?? '';
+            $vendorLangFile = rtrim($vendorPath, '/') . "/modules/{$actualModule}/localize/{$lang}.php";
+
+            if (file_exists($vendorLangFile)) {
+                $vendorTranslations = include($vendorLangFile);
+                if (is_array($vendorTranslations)) {
+                    foreach ($vendorTranslations as $source => $target) {
+                        self::$translations[$lang . ':' . $source] = $target;
+                    }
                 }
             }
         }

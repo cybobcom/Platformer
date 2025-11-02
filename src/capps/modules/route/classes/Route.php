@@ -3,25 +3,19 @@ namespace capps\modules\route\classes;
 
 class Route extends \capps\modules\database\classes\CBObject
 {
-
-    function __construct($id = NULL)
-    {
-
-        $this->objDatabase = new \capps\modules\database\classes\CBDatabase();
-
-        $this->strTable = 'capps_route';
-        $this->strPrimaryKey = 'route_id';
-
-
-        $arrColumns = $this->objDatabase->get("SHOW COLUMNS FROM " . $this->strTable);
-
-        foreach ($arrColumns as $run => $arrAttribute) $this->arrAttributes[$arrAttribute['Field']] = "";
-
-        $this->identifier = $id;
-
-        if ($this->identifier != NULL) $this->load($this->identifier);
-
-
+    public function __construct(
+        mixed $id = null,
+        ?array $arrDB_Data = null,
+        array $config = []
+    ) {
+        // Call parent constructor with agent-specific settings
+        parent::__construct(
+            $id,                    // ID to load
+            'capps_route',          // Table name
+            'route_id',            // Primary key
+            $arrDB_Data,            // Database config
+            $config                 // Additional config
+        );
     }
 
     /**
@@ -88,7 +82,10 @@ class Route extends \capps\modules\database\classes\CBObject
         $arrConditions["content_id"] = "NULL";
         $arrConditions["address_id"] = "NULL";
 
+        //CBLog($arrSave);
+        //CBLog($arrConditions);
         $objRoute = $this->save($arrSave,$arrConditions);
+        //CBLog($this->getLastError());
 
         return $strRoute;
     }

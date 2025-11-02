@@ -1,58 +1,27 @@
 <?php
 
-global $objPlatformUser;
-
 //
 // init
 //
+/*
+$strModuleName = CBgetModuleName(__FILE__);
+	echo "strModuleName<pre>"; print_r($strModuleName); echo "</pre>";
+
+
+	
+	$objTmp = CBinitObject(ucfirst($strModuleName));
+
+*/
 
 //
-$arrSave = array();
-$arrSave["settings_address_search"] = $_REQUEST["search"] ?? "";
-$objPlatformUser->saveContentUpdate($_SESSION[PLATFORM_IDENTIFIER]["login_user_identifier"]??"",$arrSave);
 
 
-$objTmp = CBinitObject("Address");
+$objTmp = new \capps\modules\database\classes\CBObject(NULL, "capps_addressgroup", "addressgroup_uid");
 //echo "objTmp<pre>"; print_r($objTmp); echo "</pre>";exit;
 
-//
-$selection = "";
-
-//
-if ( isset($_REQUEST['search']) && $_REQUEST['search'] != "" && $_REQUEST['search'] != "undefined" ) {
-
-    //
-    $strSearch = $_REQUEST["search"];
-
-    //
-    $arrSearch = explode(" ",$strSearch);
-
-    //
-    foreach ( $arrSearch as $rS=>$strSearch ) {
-
-        if ( $strSearch == "" ) continue;
-        if ( $strSearch == " " ) continue;
-        if ( strlen($strSearch) < 2 ) continue;
-
-        if ( $selection != "" ) $selection .= " AND ";
-        $selection .= " ( company LIKE '%".$strSearch."%' OR firstname LIKE '%".$strSearch."%' OR lastname LIKE '%".$strSearch."%' OR street LIKE '%".$strSearch."%' OR postcode LIKE '%".$strSearch."%' OR city LIKE '%".$strSearch."%' OR login LIKE '%".$strSearch."%' OR password LIKE '%".$strSearch."%' OR data LIKE '%".$strSearch."%' OR media LIKE '%".$strSearch."%'  ) ";
-
-    }
-
-}
-
-$arrIDs = $objTmp->getAllEntries("lastname",NULL,NULL,$selection);
+$arrIDs = $objTmp->getAllEntries("name","ASC");
 //echo "arrIDs<pre>"; print_r($arrIDs); echo "</pre>";exit;
 
-if ( isset($_REQUEST['format']) && $_REQUEST['format'] == "json" ) {
-
-    //
-    $output = json_encode($arrIDs, JSON_HEX_APOS|JSON_PRETTY_PRINT);
-
-    header('Content-Type: application/json');
-    echo $output;
-    exit;
-}
 
 ?>
 
@@ -64,9 +33,8 @@ if ( isset($_REQUEST['format']) && $_REQUEST['format'] == "json" ) {
         <tr>
             <th class="cb_table_first_row"></th>
             <th>Name</th>
-            <th>Login</th>
-            <th>Addressgroups</th>
-            <th>letzter Login</th>
+            <th>description</th>
+            <th>entity</th>
         </tr>
         </thead>
         <?php
@@ -77,17 +45,18 @@ if ( isset($_REQUEST['format']) && $_REQUEST['format'] == "json" ) {
                 //echo "arrEntry<pre>"; print_r($arrEntry); echo "</pre>";
 
                 //$objTmp = CBinitObject(ucfirst($strModuleName),$arrEntry["address_id"]);
-                $objTmp = new \capps\modules\database\classes\CBObject($arrEntry["address_uid"], "capps_address", "address_uid");
+                $objTmp = new \capps\modules\database\classes\CBObject($arrEntry["addressgroup_uid"], "capps_addressgroup", "addressgroup_uid");
+
                 //echo "objTmp<pre>"; print_r($objTmp); echo "</pre>";
 
 
                 $strStyle = "";
-                if ($objTmp->getAttribute('active') != "1") $strStyle = "opacity:0.25;";
+                //if ($objTmp->getAttribute('active') != "1") $strStyle = "opacity:0.25;";
 
                 ?>
 
                 <tr class="classid_entry" style="<?php echo $strStyle; ?>"
-                    data-id="<?php echo $objTmp->getAttribute('address_uid'); ?>">
+                    data-id="<?php echo $objTmp->getAttribute('addressgroup_uid'); ?>">
 
                     <td>
                         <div>
@@ -99,34 +68,21 @@ if ( isset($_REQUEST['format']) && $_REQUEST['format'] == "json" ) {
 
                     <td>
                         <?php
-                        echo $objTmp->getAttribute('firstname')." ".$objTmp->getAttribute('lastname');
+                        echo $objTmp->getAttribute('name');
                         ?>
                     </td>
 
-                    <td>
-                        <?php
-                        echo $objTmp->getAttribute('login')."<br>";
-                        echo '<i>'.$objTmp->getAttribute('login_alternative')."</i><br>";
-                        ?>
-                    </td>
+
 
                     <td>
                         <?php
-                        //echo $objTmp->getAttribute('addressgroups');
-                        $arrAddressGroups = explode(",", $objTmp->getAttribute('addressgroups'));
-                        asort($arrAddressGroups);
-                        echo '<small>';
-                        foreach ($arrAddressGroups as $entity) {
-                            $objAddressGroupTmp = CBinitObject("AddressGroup","entity:".$entity);
-                            echo $entity.": ".$objAddressGroupTmp->getAttribute('name')."<br>" ;
-                        }
-                        echo '</small>';
+                        echo $objTmp->getAttribute('description');
                         ?>
                     </td>
-
+                    
                     <td>
                         <?php
-                        echo $objTmp->getAttribute('date_lastlogin');
+                        echo $objTmp->getAttribute('entity');
                         ?>
                     </td>
 

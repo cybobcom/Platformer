@@ -24,6 +24,8 @@ class CBDatabase
     private ?PDO $connection = null;
     private string $database;
     private ?string $lastError = null;
+    private ?string $lastQuery = null;
+    private array $lastParams = [];
 
     public function __construct(?array $config = null)
     {
@@ -37,6 +39,9 @@ class CBDatabase
      */
     public function getLastError(): ?string
     {
+        if ($this->lastError && $this->lastQuery) {
+            return $this->lastError . " | Query: " . $this->lastQuery . " | Params: " . json_encode($this->lastParams);
+        }
         return $this->lastError;
     }
 
@@ -175,6 +180,9 @@ class CBDatabase
 
         $query = "INSERT INTO `{$table}` (`" . implode('`, `', $columns) . "`) VALUES (" . implode(', ', $placeholders) . ")";
 
+        $this->lastQuery = $query;        // ← NEU
+        $this->lastParams = array_values($data);  // ← NEU
+
         try {
             $stmt = $this->connection->prepare($query);
             $stmt->execute(array_values($data));
@@ -205,6 +213,10 @@ class CBDatabase
         $this->lastError = null;
         $setParts = array_map(fn($col) => "`{$col}` = ?", array_keys($data));
         $query = "UPDATE `{$table}` SET " . implode(', ', $setParts) . " WHERE {$where}";
+
+        $this->lastQuery = $query;        // ← NEU
+        $params = array_merge(array_values($data), $whereParams);
+        $this->lastParams = $params;      // ← NEU
 
         try {
             $stmt = $this->connection->prepare($query);

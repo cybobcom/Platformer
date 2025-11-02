@@ -461,6 +461,7 @@ function parseTemplateSECOND($_strTemplate, $_arrEntry, $_prefix = "", $_clean =
         foreach ( CONFIGURATION as $key=>$value) {
             if (!is_array($value)) {
                 $strParsed = str_replace("###" . $key . "###", $value . "", $strParsed);
+                $strParsed = str_replace("###" . strtoupper($key) . "###", $value . "", $strParsed);
             } else {
                 // TODO parse array
             }
@@ -590,8 +591,10 @@ function parseTemplate($_strTemplate, $_arrEntry, $_prefix = "", $_clean = true,
                     $keyDot = str_replace('_', '.', $key);
 
                     $strParsed = str_replace($open . $key . $close, $value . "", $strParsed);
+                    $strParsed = str_replace($open . strtoupper($key) . $close, $value . "", $strParsed);
                     if ($key !== $keyDot) {
                         $strParsed = str_replace($open . $keyDot . $close, $value . "", $strParsed);
+                        $strParsed = str_replace($open . strtoupper($keyDot) . $close, $value . "", $strParsed);
                     }
                 }
             }
@@ -637,6 +640,8 @@ function parseTemplate($_strTemplate, $_arrEntry, $_prefix = "", $_clean = true,
 
             $strParsed = preg_replace('/' . $openEsc . '.*?' . $closeEsc . '/s', '', $strParsed);
         }
+
+
     }
 
     return $strParsed;

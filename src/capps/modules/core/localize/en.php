@@ -22,4 +22,7 @@ return [
     'Active' => 'Active',
     'Created' => 'Created',
     'Updated' => 'Updated',
+
+    'Edit item' => 'Edit item',
+
 ];

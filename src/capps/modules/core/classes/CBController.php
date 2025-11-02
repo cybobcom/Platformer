@@ -42,7 +42,7 @@ class CBController
      * @param array $data Response data
      * @param int $status HTTP status code
      */
-    protected function jsonResponse(array $data, int $status = 200): void
+    public function jsonResponse(array $data, int $status = 200): void
     {
         http_response_code($status);
         header('Content-Type: application/json');
@@ -56,7 +56,7 @@ class CBController
      * @param string $message Error message
      * @param int $status HTTP status code (default 400)
      */
-    protected function errorResponse(string $message, int $status = 400): void
+    public function errorResponse(string $message, int $status = 400): void
     {
         $this->jsonResponse([
             'response' => 'error',
@@ -69,7 +69,7 @@ class CBController
      *
      * @param array $data Additional data to include in response
      */
-    protected function successResponse(array $data = []): void
+    public function successResponse(array $data = []): void
     {
         $this->jsonResponse(array_merge([
             'response' => 'success',
@@ -83,7 +83,7 @@ class CBController
      * @param string|array $requiredGroups Required addressgroups
      * @return bool
      */
-    protected function checkPermission($requiredGroups): bool
+    public function checkPermission($requiredGroups): bool
     {
         global $objPlatformUser;
 
@@ -103,7 +103,7 @@ class CBController
      * @param array $data Data array to validate (default: $_REQUEST)
      * @return bool
      */
-    protected function validateRequired(array $requiredFields, array $data = null): bool
+    public function validateRequired(array $requiredFields, array $data = null): bool
     {
         $data = $data ?? $_REQUEST;
 
@@ -157,7 +157,7 @@ class CBController
      * Require user to be logged in
      * Stops execution if not authenticated
      */
-    protected function requireLogin(): void
+    public function requireLogin(): void
     {
         if (!isset($_SESSION[PLATFORM_IDENTIFIER]['login_verified'])
             || $_SESSION[PLATFORM_IDENTIFIER]['login_verified'] != "1"
@@ -173,7 +173,7 @@ class CBController
      *
      * @param string|array $requiredGroup Required addressgroup(s)
      */
-    protected function requirePermission($requiredGroup): void
+    public function requirePermission($requiredGroup): void
     {
         $this->requireLogin();
 
@@ -186,7 +186,7 @@ class CBController
      * Validate CSRF token for POST requests
      * Call this at the start of any state-changing operation
      */
-    protected function validateCSRF(): void
+    public function validateCSRF(): void
     {
         // Only check POST/PUT/DELETE requests
         if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['POST', 'PUT', 'DELETE'])) {
@@ -208,7 +208,7 @@ class CBController
      * @param int $maxAttempts Maximum attempts per time window
      * @param int $windowSeconds Time window in seconds (default: 60)
      */
-    protected function rateLimit(string $action, int $maxAttempts = 5, int $windowSeconds = 60): void
+    public function rateLimit(string $action, int $maxAttempts = 5, int $windowSeconds = 60): void
     {
         $key = 'rate_limit_' . $action . '_' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
 
@@ -243,7 +243,7 @@ class CBController
      * @param array $data Input data array
      * @return array Sanitized data
      */
-    protected function sanitizeInput(array $data): array
+    public function sanitizeInput(array $data): array
     {
         return array_map(function($value) {
             if (is_array($value)) {
@@ -262,7 +262,7 @@ class CBController
      * @param string $email Email to validate
      * @return bool
      */
-    protected function isValidEmail(string $email): bool
+    public function isValidEmail(string $email): bool
     {
         return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
     }

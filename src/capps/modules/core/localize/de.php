@@ -22,4 +22,6 @@ return [
     'Active' => 'Aktiv',
     'Created' => 'Erstellt',
     'Updated' => 'Aktualisiert',
+
+    'Edit item' => 'Eintrag bearbeiten',
 ];
