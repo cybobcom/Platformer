@@ -8,7 +8,7 @@ if ( $_REQUEST['id'] != "" ) {
 
     //
 ?>
-<div class="app_item">
+<div id="app_editItem">
 
     <div class="modal-header">
         <h5 class="modal-title" id="exampleModalLabel"><cb:localize>Edit item</cb:localize></h5>
@@ -77,7 +77,7 @@ if ( $_REQUEST['id'] != "" ) {
                                 echo '<input type="hidden" name="addressgroups['.$vAG["entity"].']" value="0" />';
                                 $checked = "";
                                 if ( $tmp == "1" ) $checked = 'checked="checked"';
-                                echo $tmp.'<input name="addressgroups['.$vAG["entity"].']" id="addressgroups['.$vAG["entity"].']" type="checkbox" '.$checked.' value="1" class="form-check-input">'." ".$vAG["name"]."<br>";
+                                echo '<input name="addressgroups['.$vAG["entity"].']" id="addressgroups['.$vAG["entity"].']" type="checkbox" '.$checked.' value="1" class="form-check-input">'." ".$vAG["name"]."<br>";
                                 echo '</label>';
                                 echo '</div>';
 
@@ -150,7 +150,7 @@ if ( $_REQUEST['id'] != "" ) {
                 for (const [key, value] of formData.entries()) {
                     obj[key] = value;
                 }
-                CBLog( JSON.stringify(obj) );
+                //CBLog( JSON.stringify(obj) );
 
                 var url = BASEURL+"controller/address/updateItem/";
 
@@ -164,7 +164,7 @@ if ( $_REQUEST['id'] != "" ) {
                         globalDetailModal.hide();
 
                         //
-                        listItems();
+                        mountedAppMain.listItems();
 
                     })
                     .catch(error => {
@@ -176,7 +176,9 @@ if ( $_REQUEST['id'] != "" ) {
             },
 
             deleteItem: function () {
-                alert(this.identifier);
+                if (window.confirm("Möchten Sie den Eintrag wirklich löschen?")) {
+                    mountedAppMain.deleteItem(this.identifier);
+                }
             },
 
         },
@@ -188,7 +190,7 @@ if ( $_REQUEST['id'] != "" ) {
     })
 
     //
-    var mountedApp = appItem.mount('.app_item');
+    var mountedAppEditItem = appItem.mount('#app_editItem');
 
 </script>
 

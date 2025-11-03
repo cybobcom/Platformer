@@ -28,10 +28,14 @@ if (is_array($_REQUEST['save'])) {
     //
     //$objTmp = CBinitObject(ucfirst($strModuleName),$intID);
 
-    //
-    $dictResponse["response"] = "success";
-    $dictResponse["description"] = "ok";
-    $dictResponse["id"] = $intID;
+    if ( $intID ) {
+        //
+        $dictResponse["response"] = "success";
+        $dictResponse["description"] = "ok";
+        $dictResponse["id"] = $intID;
+    } else {
+        $dictResponse["description"] = $objTmp->getLastError();
+    }
 
 }
 

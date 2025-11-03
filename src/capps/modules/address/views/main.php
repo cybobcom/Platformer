@@ -7,59 +7,59 @@ global $objPlatformUser;
 
 
 
-<cb:navigation
-        entry="###page_structure_id###"
-        highlightDEVPath="1"
-        level3="<a href='###LINK###' class='###page_data_icon### ' title='###page_name###'>###page_name###</a>"
-        level3_selected="<a href='###LINK###' class='###page_data_icon### ' title='###page_name###'>###page_name###</a>"
- />
 
 
-<div class="position-absolute" style="right: 60px; width:200px;padding-top:5px;">
-    <div style=" position: absolute;">
-        <span style="flo2at:right; position:absolute; right:10px; top:9px; visibility:hidden; color: gray; font-size: 12px;" class="id_search_reset bi bi-x-lg"></span>
-        <input name="search" type="text" class="form-control foDEVrmular4 form-control-sm" value="" placeholder="Finden" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"  id="filter_search" v-model="searchText" />
-    </div>
-</div>
-<script>
-    /*
-    $('#filter_search').off('input chaDEVnge paste');
-    $('#filter_search').on('input chaDEVnge paste', function(){
-
-        $('.id_search_reset').css('visibility', 'visible');
-
-        var str = $('#filter_search').val();
-        if ( str.length >= 2 ) {
-            listItems();
-        }
-
-    });
-    $(document).off('click', '.id_search_reset')
-    $(document).on('click', '.id_search_reset', function () {
-
-        $('#filter_search').val("");
-        $('.id_search_reset').css('visibility', 'hidden');
-        listItems();
-
-    });
-    if ( $('#filter_search').val() != "" ) {
-        $('.id_search_reset').css('visibility', 'visible');
-    }
-*/
-</script>
 
 <div id="app_main">
 
-    <div class="position-absolute" style="right: 20px;">
-        <a class="classid_entry_new"><i class="btn btn-lg bi bi-plus-lg"></i></a>
+    <div class="container-fluid">
+        <div class="row">
+
+            <div class="col">
+                <h1><cb:localize>Address</cb:localize></h1>
+            </div>
+
+            <div class="col text-end">
+
+<div class="d-flex justify-content-end align-items-center gap-2">
+                <div class="positionDEV-absolute" styDEVle="right: 60px; width:200px;padding-top:5px;">
+                    <div styleDEV=" position: absolute;">
+                        <span style="position:absolute; right:10px; top:9px; visibility:hidden; color: gray; font-size: 12px;" :style="searchText.length > 2 ? 'visibility:visible;' : ''" class="id_search_reset bi bi-x-lg" @click="searchText = '';listItems()"></span>
+                        <input name="search" type="text" class="form-control foDEVrmular4 form-control-sm"  placeholder="Finden" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"  id="filter_search" v-model="searchText" />
+                    </div>
+                </div>
+
+                <div class="positionDEV-absolute" styDEVle="right: 20px;">
+                    <a @click="newItem()"><i class="btn btn-lg bi bi-plus-lg"></i></a>
+                </div>
+
+                <div class="dropdown text-end">
+                    <div class=" btn-sm dropdown-toggle " type="button" data-bs-toggle="dropdown" aria-expanded="true" data-bs-auto-close="outside">
+                        <div class="bi bi-three-dots-vertical" style="padding: 0px; margin-top:2px; margin-left: 0px; font-size:21px; color:#999;"></div>
+                    </div>
+                    <div class="dropdown-menu " style="width: 320px; padding: 12px; background-color: rgb(255, 255, 255); font-weight: 400; color: rgb(102, 102, 102); line-height: 24px; border-radius: 8px; border: 1px solid rgb(204, 204, 204); box-shadow: rgba(0, 0, 0, 0.15) 0px 0px 16px; position: absolute; inset: 0px 0px auto auto; margin: 0px; transform: translate3d(0px, 35px, 0px);" data-popper-placement="bottom-end">
+
+
+
+                        <cb:navigation
+                                entry="###page_structure_id###"
+                                highlightDEVPath="1"
+                                level3="<a href='###LINK###' class='###page_data_icon### ' title='###page_name###'> ###page_name###</a>"
+                                level3_selected="<a href='###LINK###' class='###page_data_icon### ' title='###page_name###'> ###page_name###</a>"
+                        />
+
+
+                    </div>
+                </div>
+
+</div>
+
+            </div>
+
+        </div>
     </div>
 
-    <h1>Nutzer</h1>
 
-
-    <div id="container_content">
-        ...
-    </div>
 
     <div class="table-responsive contentarea" style="padding: 15px; margin-bottom: 15px;">
 
@@ -70,7 +70,7 @@ global $objPlatformUser;
                 <th>Name</th>
                 <th>Login</th>
                 <th>Addressgroups</th>
-                <th>letzter Login</th>
+                <th>Last Login</th>
             </tr>
             </thead>
 
@@ -145,6 +145,7 @@ global $objPlatformUser;
         },
         watch: {
             searchText: function (text) {
+                //console.log(text)
                 if (text.length < 3) {
                     //this.results = [];
                     return;
@@ -186,6 +187,36 @@ global $objPlatformUser;
 
             },
 
+            newItem() {
+
+                globalDetailModal.show();
+
+                var url = BASEURL+"/views/address/newItem/";
+
+                $( "#detailModalContent" ).html('<div class="mx-auto p-2 text-center ajax_loader"></div>');
+                $( "#detailModalContent" ).load( url, function() {
+                    //alert( "Load was performed." );
+                })
+
+            },
+
+            deleteItem: function (id) {
+
+                var url = BASEURL+"controller/address/deleteItem/";
+                url += "?id="+id;
+                //alert(url);
+
+                axios.get(url)
+                    .then((response) => {
+                        //alert(JSON.stringify(response.data));
+                        globalDetailModal.hide();
+                        this.listItems();
+                    })
+                    .catch(error => {
+                        console.error(error);
+                    });
+            },
+
 
 
         },
@@ -203,78 +234,4 @@ global $objPlatformUser;
     //
     var mountedAppMain = appMain.mount('#app_main');
 
-/*
-    function listItems(uid=""){
-
-        var strSearch = $('#filter_search').val();
-
-        var url = "###BASEURL###views/address/listItems/";
-        url += "?search="+encodeURI(strSearch);
-
-        if ( uid == "" ) {
-
-            $( "#container_content" ).html('<div class="mx-auto p-2 text-center ajax_loader"></div>');
-            $( "#container_content" ).load( url, function() {
-                //alert( "Load was performed. "+url );
-            });
-
-        } else {
-
-            $.ajax({
-                'url': url,
-                'type': 'POST',
-                'success': function(result){
-                    //alert(result);
-                    if ( result != "" ) {
-                        $( 'tr[data-uid="'+uid+'"]' ).replaceWith(result);
-                    }
-                }
-            });
-
-        }
-
-    }
-
-    function newItem(){
-
-        globalDetailModal.show();
-
-        var url = "###BASEURL###views/address/newItem/";
-
-        $( "#detailModalContent" ).html('<div class="mx-auto p-2 text-center ajax_loader"></div>');
-        $( "#detailModalContent" ).load( url, function() {
-            //alert( "Load was performed." );
-        });
-
-    }
-
-    function editItem(id){
-
-        globalDetailModal.show();
-
-        var url = "###BASEURL###views/address/editItem/?id="+id;
-
-        $( "#detailModalContent" ).html('<div class="mx-auto p-2 text-center ajax_loader"></div>');
-        $( "#detailModalContent" ).load( url, function() {
-            //alert( "Load was performed." );
-        });
-
-    }
-    */
-
-
-
-
-
-</script>
-<script type="text/javascript">
-/*
-    //
-    listItems();
-
-    //
-    $(document).on('click', '.classid_entry_new', function () {
-        newItem();
-    });
-*/
 </script>

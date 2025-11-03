@@ -88,15 +88,51 @@ function sortStructureWithSorting(array $items): array {
 <style>
 </style>
 
-<cb:navigation
+<!--cb:navigation
     entry="###page_structure_id###"
     highlightDEVPath="1"
     level3="<a href='###LINK###' class='###page_data_icon### ' title='###page_name###'>###page_name###</a>"
     level3_selected="<a href='###LINK###' class='###page_data_icon### ' title='###page_name###'>###page_name###</a>"
- />
+ /-->
 
 
 <div class="app_pages">
+
+    <div class="container-fluid">
+        <div class="row">
+
+            <div class="col">
+                <h1>###page_name###</h1>
+            </div>
+
+            <div class="col text-end">
+                <div class="d-flex justify-content-end align-items-center gap-2">
+
+                    <div class="dropdown text-end">
+                        <div class=" btn-sm dropdown-toggle " type="button" data-bs-toggle="dropdown" aria-expanded="true" data-bs-auto-close="outside">
+                            <div class="bi bi-three-dots-vertical" style="padding: 0px; margin-top:2px; margin-left: 0px; font-size:21px; color:#999;"></div>
+                        </div>
+                        <div class="dropdown-menu " style="width: 320px; padding: 12px; background-color: rgb(255, 255, 255); font-weight: 400; color: rgb(102, 102, 102); line-height: 24px; border-radius: 8px; border: 1px solid rgb(204, 204, 204); box-shadow: rgba(0, 0, 0, 0.15) 0px 0px 16px; position: absolute; inset: 0px 0px auto auto; margin: 0px; transform: translate3d(0px, 35px, 0px);" data-popper-placement="bottom-end">
+
+
+
+                            <cb:navigation
+                                    entry="###page_structure_id###"
+                                    highlightDEVPath="1"
+                                    level3="<a href='###LINK###' class='###page_data_icon### ' title='###page_name###'> ###page_name###</a><br>"
+                                    level3_selected="<a href='###LINK###' class='###page_data_icon### ' title='###page_name###'> ###page_name###</a><br>"
+                            />
+
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
 
 
 <dic class="container-fluid">
@@ -128,7 +164,7 @@ function sortStructureWithSorting(array $items): array {
 
                 <tbody>
                 <template v-for="(page, id) in arrPages">
-                    <tr @click="showPage(page.structure_id)" :class="{'opacity-25': page.active != 1}" >
+                    <tr @click="showPage(page.structure_id)" :class="{'opacity-25': page.active != 1}" :style="dictPage.structure_id == page.structure_id ? 'background-color:rgba(0,0,0,0.1);' : ''" >
 
                         <td >
                             <div :class="'ms-'+(page.level*2)">
@@ -147,33 +183,39 @@ function sortStructureWithSorting(array $items): array {
         <div class="col-9">
 
             <div v-if="typeof dictPage.structure_id !== 'undefined'">
-                {{dictPage.name}}
-                <small><a :href="BASEURL+dictPage.route" target="_blank" onclick="event.stopPropagation()">../{{dictPage.route}}</a></small>
 
-                <i class="bi bi-pencil" @click="editPage(dictPage.structure_id)"></i>
-                <i class="bi bi-plus-lg" @click="newElement(dictPage.structure_id)"></i>
+                <h1>{{dictPage.name}}
+                    <i class="bi bi-pencil me-3" style="font-size: 0.5em;" @click="editPage(dictPage.structure_id)"></i>
+
+                    <small><a :href="BASEURL+dictPage.route" target="_blank" onclick="event.stopPropagation()">../{{dictPage.route}}</a></small>
+                </h1>
+
+                <table id="table_list" class=" table table-sm">
+
+                    <tbody>
+                    <template v-for="(element, id) in arrElements">
+                        <tr @click="editElement(element.content_id)" :class="{'opacity-25': element.active != 1}">
+
+                            <td >
+                                <span>{{element.name}}</span>
+                            </td>
+
+                        </tr>
+                    </template>
+                    </tbody>
+
+                </table>
+
+                <i class="bi bi-plus-lg" @click="newElement(dictPage.structure_id)"> neues Element</i>
+
             </div>
 
-            <table id="table_list" class=" table table-sm">
-
-                <tbody>
-                <template v-for="(element, id) in arrElements">
-                    <tr @click="showPage(element.structure_id)" :class="{'opacity-25': element.active != 1}">
-
-                        <td >
-                            <span>{{element.name}}</span>
-                        </td>
-                        <td class="text-end">
-                            <i class="bi bi-pencil" @click="editElement(element.content_id)"></i>
-                        </td>
-                    </tr>
-                </template>
-                </tbody>
-
-            </table>
+            <div v-if="typeof dictPage.structure_id === 'undefined'">
+                <i>Bitte eine Seite auswählen.</i>
+            </div>
 
 
-        </div>
+            </div>
     </div>
 </dic>
 

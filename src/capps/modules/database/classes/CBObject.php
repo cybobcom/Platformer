@@ -318,7 +318,8 @@ class CBObject
         return $insertId;
     }
 
-    function saveContentNew($arrContent, $_forceOverwritePK = false, $_flagReturnSql = NULL){
+    function saveContentNew($arrContent, $_forceOverwritePK = false, $_flagReturnSql = NULL)
+    {
         return $this->create($arrContent);
     }
 
@@ -442,7 +443,8 @@ class CBObject
         return $success;
     }
 
-    function saveContentUpdate($id, $arrContent, $_flagReturnSql = NULL) {
+    function saveContentUpdate($id, $arrContent, $_flagReturnSql = NULL)
+    {
         return $this->update($arrContent, $id);
     }
 
@@ -469,6 +471,10 @@ class CBObject
         }
 
         return $success;
+    }
+
+    function deleteEntry($id = NULL){
+        return $this->delete($id);
     }
 
     /**
@@ -629,6 +635,43 @@ class CBObject
                 }
             }
             $where = 'WHERE ' . implode(' AND ', $whereClauses);
+        }
+
+        // SEARCH Option - NEU
+        if (!empty($options['search'])) {
+            $searchTerm = $options['search']['term'] ?? '';
+            $searchFields = $options['search']['fields'] ?? [];
+
+            if ($searchTerm && !empty($searchFields)) {
+                $searchClauses = [];
+                foreach ($searchFields as $field) {
+                    $searchClauses[] = "`{$field}` LIKE ?";
+                    $params[] = '%' . $searchTerm . '%';
+                }
+                $searchWhere = '(' . implode(' OR ', $searchClauses) . ')';
+                $where .= ($where ? ' AND ' : 'WHERE ') . $searchWhere;
+            }
+        }
+
+        // In findAll() nach dem WHERE-Block:
+        if (!empty($options['rawWhere'])) {
+            $rawWhere = $options['rawWhere'];
+
+            // Einfache Sicherheitsprüfung
+            $dangerous = ['DROP', 'DELETE', 'TRUNCATE', 'ALTER', 'CREATE', 'GRANT', 'INSERT', 'UPDATE'];
+            $checkString = strtoupper($rawWhere);
+            foreach ($dangerous as $keyword) {
+                if (strpos($checkString, $keyword) !== false) {
+                    throw new RuntimeException("Dangerous SQL keyword detected in rawWhere: {$keyword}");
+                }
+            }
+
+// Zusätzlich: SQL-Kommentare und Semikolon blocken
+            if (strpos($rawWhere, '--') !== false || strpos($rawWhere, ';') !== false) {
+                throw new RuntimeException("SQL comments or semicolons not allowed in rawWhere");
+            }
+
+            $where .= ($where ? ' AND ' : 'WHERE ') . '(' . $rawWhere . ')';
         }
 
         // Sorting: Separate normal fields vs data_ fields
@@ -809,9 +852,10 @@ class CBObject
         $options = [];
         if ($order) $options['order'] = $order;
         if ($direction) $options['direction'] = $direction;
-        if ($selection) $options['select'] = $selection;
-        if ($limit) $options['limit'] = $limit;
         if ( $arrCondition == NULL ) $arrCondition = [];
+        if ($selection) $options['rawWhere'] = $selection;
+        if ($result) $options['select'] = $result;
+        if ($limit) $options['limit'] = $limit;
 
         return $this->findAll($arrCondition, $options);
     }

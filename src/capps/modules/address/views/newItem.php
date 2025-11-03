@@ -3,94 +3,125 @@
 	//
 	// new
 	//
-
-/*
-	$strModuleName = CBgetModuleName(__FILE__);
-	//echo "strModuleName<pre>"; print_r($strModuleName); echo "</pre>";
-
-
-	
-	$objTmp = CBinitObject(ucfirst($strModuleName));
-    */
-
-$objTmp = new \capps\modules\database\classes\CBObject(NULL,"capps_address","address_uid");
-	//echo "objTmp<pre>"; print_r($objTmp); echo "</pre>";
-	
+    $objTmp = CBinitObject("Address");
+    //CBLog($objTmp);
 ?>
+<div id="app_newItem">
 
 
-    
-<form method="post" id="modal_item_new" class="form-horizontal">
+    <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Neuer Eintrag</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
 
+    <div class="modal-body">
 
-										
-<div class="modal-header">
-	<h5 class="modal-title" id="exampleModalLabel">Neuer Eintrag</h5>
-	<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-  </div>
-      
-      <div class="modal-body">
-								
-<table class="table table-sm">
- 
- <tr class="back8">
-  <td>Vorname</td>
-    <td><?php echo cb_makeInputForm ("save[firstname]",$objTmp->getAttribute('firstname'),"form-control form-control-sm"); ?></td>	
-  </tr>
-  
-      
-    </td> 
-  </tr>
-    
-</table>
+        <form method="post" id="modal_item_new" class="form-horizontal" ref="form_new">
 
-      </div>
-      
-      <div class="modal-footer">
-		  <button type="button" class="btn btn-default" data-bs-dismiss="modal">Schlie&szlig;en</button>
-		  <button type="button" class="btn btn-primary classid_button_insert">Speichern</button>
-		</div>
-      
-										
-</form>
+            <div class="container-fluid">
+                <div class="row g-2">
 
+                    <div class="form-floating mb-2">
+                        <input type="text" name="save[firstname]" v-model="dictItem.firstname" placeholder="<cb:localize>Firstname</cb:localize>" class="form-control form-control-sm">
+                        <label for="save[firstname]"><cb:localize>Firstname</cb:localize></label>
+                    </div>
+
+                </div>
+            </div>
+
+        </form>
+
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-bs-dismiss="modal"><cb:localize>Schlie&szlig;en<</cb:localize>/button>
+        <button type="button" class="btn btn-primary" @click="insertItem"><cb:localize>Speichern</cb:localize></button>
+    </div>
+
+</div>
 
 <script>
-    $(document).off('click', '.classid_button_insert');
-$(document).on('click', '.classid_button_insert', function () {
 
+    //
+    var BASEURL = '<?php echo BASEURL; ?>';
 
-	
-	var tmp = $('#modal_item_new').serializeArray();
-					 
-	var url = "<?php echo BASEURL; ?>controller/address/insertItem/";
+    //
+    var appItem = Vue.createApp({
 
-	$.ajax({
-		'url': url,
-		'type': 'POST',
-		'data': tmp,
-		'success': function(result){
-			 //process here
-			 //alert( "Load was performed. "+url );
-			 //$('#myModalDetails').html(result);
+        data() {
+            return {
 
-            if (result.response == "success") {
-                editItem(result.id);
-            } else {
-                //$("#container_login").html(result.description);
+                BASEURL: window.BASEURL,
+                hello: 'hi',
+                identifier: '<?php echo $_REQUEST["id"]??""; ?>',
+                dictItem: <?php echo json_encode($objTmp->arrAttributes); ?>,
+
+                searchText: '',
+
             }
+        },
+        watch: {
 
-		}
-	});
-	
-	return false; // no submit of form
-	
-});
+        },
+        methods: {
+
+            insertItem: function () {
+
+                //
+                const formEl = this.$refs.form_new;
+                const formData = new FormData(formEl);
+                /*
+                                // NUR die Felder aus dem Form senden
+                                for (const el of formEl.elements) {
+                                    if (!el.name) continue;       // skip unnamed elements
+                                    if (el.type === 'checkbox') {
+                                        // checkbox → nimm den Wert aus v-model, nicht el.checked
+                                        formData.append(el.name, this.dictItem[el.name.match(/\[([^\]]+)\]/)[1]]);
+                                    } else {
+                                        formData.append(el.name, el.value);
+                                    }
+                                }
+                                */
+                const obj = {};
+                for (const [key, value] of formData.entries()) {
+                    obj[key] = value;
+                }
+                //CBLog( JSON.stringify(obj) );
+
+                var url = BASEURL+"controller/address/insertItem/";
+
+                axios.post(url, formData)
+                    .then(response => {
+                        //alert(JSON.stringify(response));
+
+                        //
+                        if ( response.data.id ) {
+                            mountedAppMain.listItems();
+                            mountedAppMain.editItem(response.data.id );
+                        } else {
+                            alert(response.data.description);
+                        }
+
+                    })
+                    .catch(error => {
+                        console.error(error);
+                    });
+
+
+
+            },
+
+
+
+        },
+
+        beforeMount(){
+
+        },
+
+    })
+
+    //
+    var mountedAppNewItem = appItem.mount('#app_newItem');
 
 </script>
-
-<?php
-	
-
-
-?>
