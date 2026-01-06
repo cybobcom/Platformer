@@ -15,6 +15,7 @@ class CBParser {
         $strTemplate = $this->parseCBNavigationTag($strTemplate,$objCS,$objC);
         $strTemplate = $this->parseCBCheckTag($strTemplate,$objCS,$objC);
         $strTemplate = $this->parseCBLocalizeTag($strTemplate); // NEU
+        $strTemplate = $this->parseLink($strTemplate,NULL,NULL,$objCS,$objC);
 
         return $strTemplate;
 
@@ -284,7 +285,7 @@ class CBParser {
                             }
                         }
 
-                            // only children
+                        // only children
                         if ( ($arrAttributes['entry_only_children']??"") == "1" ) {
                             $tmp = $dictStructure['path'][0];
                             if ( $entry != $tmp ) $boolList = false;
@@ -597,6 +598,9 @@ class CBParser {
         if ( strstr($strTemplate,"###LINK") ) { // 09-12-01 bob : performance optimization
 
             //
+            $aid = "";
+
+            //
             $strTemplate = $this->parseSystemAttributes($strTemplate);
 
             //
@@ -668,13 +672,18 @@ class CBParser {
             //
             if ( strstr($strTemplate,"###LINK_HOME###") ) {
 
-                $start = current($coreArrSortedStructure);
+                //echo '<pre>'; print_r($coreArrSortedStructure); echo '</pre>';
+                $first = current($coreArrSortedStructure);
+                //echo '<pre>'; print_r($first); echo '</pre>';
+                $start = $first["structure_id"];
                 if ( $coreArrSystemAttributes['seo_modrewrite'] != "1" ) {
                     $strTemplate = str_replace('###LINK_HOME###','index.php?sid='.$start,$strTemplate);
                 } else {
 
-                    $tmp = ':'.$start.'::::';
-                    $strCacheName = $coreArrRoute[$tmp];
+                    $tmp = ''.$start.'::';
+                    //echo '<pre>'; print_r($tmp); echo '</pre>';
+                    $strCacheName = "";
+                    if ( isset($coreArrRoute[$tmp]) ) $strCacheName = $coreArrRoute[$tmp];
 
                     if( $strCacheName != "" ) {
                         $strTemplate = str_replace('###LINK_HOME###', ''.BASEURL.$strCacheName, $strTemplate);
@@ -701,6 +710,7 @@ class CBParser {
 
 
                 preg_match_all('/###LINK:(.*)###/Us',$strTemplate,$arrTmp) ; // get all links and put in array
+                //CBLog(arrTmp);
 
                 foreach ( $arrTmp[1] as $run=>$value ) { // array 0 has the complete result // array 1 the result without search string
 
@@ -713,19 +723,19 @@ class CBParser {
 
 
 
-                        $sid = $tmp[0];
+                    $sid = $tmp[0];
 
 
 
 
 
-                    $cid = $tmp[1];
+                    if ( isset($tmp[1]) ) $cid = $tmp[1];
 
 
 
 
 
-                    if ( $tmp[5] != "" ) $aid = $tmp[5]; // 09-07-21 bob : add aid
+                    if ( isset($tmp[5]) && $tmp[5] != "" ) $aid = $tmp[5]; // 09-07-21 bob : add aid
 
 
                     if ( $coreArrSystemAttributes['seo_modrewrite'] != "1" ) {
@@ -742,14 +752,15 @@ class CBParser {
                     } else {
                         // mod rewrite
 
-                        $tmp = $sid.':'.$cid.':::'; // goes to element
+                        $tmp = $sid.':'.$cid.':'; // goes to element
 
-                        if ( $aid != "" ) $tmp = $sid.':'.$cid.':::'.$aid; //  add aid
+                        if ( $aid != "" ) $tmp = $sid.':'.$cid.':'.$aid; //  add aid
 
 
 
                         //echo $tmp."-----<br>";
-                        $strCacheName = $coreArrRoute[$tmp];
+                        $strCacheName = "";
+                        if ( isset($coreArrRoute[$tmp]) ) $strCacheName = $coreArrRoute[$tmp];
                         //echo '<pre>'; print_r($coreArrRoute); echo '</pre>';
 
 

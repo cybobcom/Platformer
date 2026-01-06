@@ -73,7 +73,7 @@ if (isset($_SESSION[PLATFORM_IDENTIFIER]["login_verified"]) && $_SESSION[PLATFOR
                 'data': tmp,
                 'success': function (result) {
 
-                    alert(result);
+                    //alert(result);
 
                     if (result.response == "success") {
                         window.location.reload(true);

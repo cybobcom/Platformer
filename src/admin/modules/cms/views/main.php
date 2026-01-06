@@ -86,6 +86,18 @@ function sortStructureWithSorting(array $items): array {
 ?>
 
 <style>
+    .sortable-ghost {
+        opacity: 0.4;
+        background: #f8f9fa;
+    }
+
+    .sortable-chosen {
+        background: #e9ecef;
+    }
+
+    tr {
+        cursor: move;
+    }
 </style>
 
 <!--cb:navigation
@@ -158,24 +170,26 @@ function sortStructureWithSorting(array $items): array {
             </div>
 
             <i class="bi bi-plus-lg" @click="addPage()"></i>
+            <i class="bi bi-arrow-left-right" @click="toggleEditMode()" :class="{'text-primary': editMode}"></i>
 
-
-            <table id="" class=" table table-sm table-hover">
-
+            <table id="table_pages" class="table table-sm table-hover">
                 <tbody>
-                <template v-for="(page, id) in arrPages">
-                    <tr @click="showPage(page.structure_id)" :class="{'opacity-25': page.active != 1}" :style="dictPage.structure_id == page.structure_id ? 'background-color:rgba(0,0,0,0.1);' : ''" >
-
-                        <td >
+                <template v-for="(page, index) in arrPages" :key="page.structure_id">
+                    <tr @click="showPage(page.structure_id)" :class="{'opacity-25': page.active != 1}">
+                        <td>
                             <div :class="'ms-'+(page.level*2)">
-                                {{page.name}}<br>
+                    <span v-if="editMode && index > 0" @click.stop="indentPage(index)">
+                        <i class="bi bi-arrow-right"></i>
+                    </span>
+                                <span v-if="editMode && page.level > 0" @click.stop="outdentPage(index)">
+                        <i class="bi bi-arrow-left"></i>
+                    </span>
+                                {{page.name}}
                             </div>
-
                         </td>
                     </tr>
                 </template>
                 </tbody>
-
             </table>
 
         </div>
@@ -197,7 +211,9 @@ function sortStructureWithSorting(array $items): array {
                         <tr @click="editElement(element.content_id)" :class="{'opacity-25': element.active != 1}">
 
                             <td >
-                                <span>{{element.name}}</span>
+                                <b>{{element.name}}</b><br>
+                                <small>{{ element.content?.slice(0, 300) }}{{ element.content?.length > 300 ? '…' : '' }}</small>
+
                             </td>
 
                         </tr>
@@ -239,6 +255,7 @@ function sortStructureWithSorting(array $items): array {
                 arrElements: [],
 
                 searchText: '',
+                editMode: false,
 
             }
         },
@@ -281,7 +298,7 @@ function sortStructureWithSorting(array $items): array {
                 axios.get(url)
                     .then((result) => {
                         //this.users = result.data
-                        //alert(JSON.stringify(result));
+                        console.log(JSON.stringify(result));
                         this.arrElements = result.data;
 
                     })
@@ -292,6 +309,7 @@ function sortStructureWithSorting(array $items): array {
                 //alert(id);
 
                 var url = BASEURL+"/views/cms/showPage/?id="+id;
+                //alert(url);
 
                 axios.get(url)
                     .then((result) => {
@@ -308,12 +326,12 @@ function sortStructureWithSorting(array $items): array {
 
             addPage() {
 
-                globalDetailModal.show();
+                globalMediumModal.show();
 
                 var url = BASEURL+"/views/structure/newItem/";
 
-                $( "#detailModalContent" ).html('<div class="mx-auto p-2 text-center ajax_loader"></div>');
-                $( "#detailModalContent" ).load( url, function() {
+                $( "#mediumModalContent" ).html('<div class="mx-auto p-2 text-center ajax_loader"></div>');
+                $( "#mediumModalContent" ).load( url, function() {
                     //alert( "Load was performed." );
                 })
 
@@ -321,13 +339,13 @@ function sortStructureWithSorting(array $items): array {
 
             editPage(id) {
 
-                globalDetailModal.show();
+                globalMediumModal.show();
 
                 var url = BASEURL+"/views/structure/editItem/?id="+id;
                 //alert(url);
 
-                $( "#detailModalContent" ).html('<div class="mx-auto p-2 text-center ajax_loader"></div>');
-                $( "#detailModalContent" ).load( url, function() {
+                $( "#mediumModalContent" ).html('<div class="mx-auto p-2 text-center ajax_loader"></div>');
+                $( "#mediumModalContent" ).load( url, function() {
                     //alert( "Load was performed." );
                 })
 
@@ -335,13 +353,13 @@ function sortStructureWithSorting(array $items): array {
 
             editElement(id) {
 
-                globalDetailModal.show();
+                globalMediumModal.show();
 
                 var url = BASEURL+"/views/content/editItem/?id="+id;
                 //alert(url);
 
-                $( "#detailModalContent" ).html('<div class="mx-auto p-2 text-center ajax_loader"></div>');
-                $( "#detailModalContent" ).load( url, function() {
+                $( "#mediumModalContent" ).html('<div class="mx-auto p-2 text-center ajax_loader"></div>');
+                $( "#mediumModalContent" ).load( url, function() {
                     //alert( "Load was performed." );
                 })
 
@@ -349,15 +367,136 @@ function sortStructureWithSorting(array $items): array {
 
             newElement(structure_id) {
 
-                globalDetailModal.show();
+                globalMediumModal.show();
 
                 var url = BASEURL+"/views/content/newItem/?structure_id="+structure_id;
 
-                $( "#detailModalContent" ).html('<div class="mx-auto p-2 text-center ajax_loader"></div>');
-                $( "#detailModalContent" ).load( url, function() {
+                $( "#mediumModalContent" ).html('<div class="mx-auto p-2 text-center ajax_loader"></div>');
+                $( "#mediumModalContent" ).load( url, function() {
                     //alert( "Load was performed." );
                 })
 
+            },
+
+            initSortable: function() {
+
+                // Sortable für Pages mit Nesting
+                const tablePages = document.querySelector('#table_pages tbody');
+                if (tablePages) {
+                    this.sortablePages = Sortable.create(tablePages, {
+                        animation: 150,
+                        handle: 'tr',
+                        disabled: true, // Standardmäßig deaktiviert
+                        onEnd: (evt) => {
+                            this.updatePagesOrder(evt);
+                        }
+                    });
+                }
+
+                // Sortable für Elements
+                const tableElements = document.querySelector('#table_list tbody');
+                if (tableElements) {
+                    this.sortableElements = Sortable.create(tableElements, {
+                        animation: 150,
+                        handle: 'tr',
+                        disabled: false,
+                        onEnd: (evt) => {
+                            this.saveElementsOrder(evt);
+                        }
+                    });
+                }
+            },
+
+            toggleEditMode: function() {
+                this.editMode = !this.editMode;
+
+                // Sortable aktivieren/deaktivieren
+                if (this.sortablePages) {
+                    this.sortablePages.option("disabled", !this.editMode);
+                }
+                if (this.sortableElements) {
+                    this.sortableElements.option("disabled", !this.editMode);
+                }
+            },
+
+            indentPage: function(index) {
+                if (index === 0) return; // Erste Seite nicht einrücken
+
+                const page = this.arrPages[index];
+                const prevPage = this.arrPages[index - 1];
+
+                // Nur einrücken wenn vorherige Seite gleiche oder höhere Ebene
+                if (prevPage.level >= page.level) {
+                    page.parent_id = prevPage.structure_id;
+                    page.level = parseInt(prevPage.level) + 1;
+                    this.savePagesOrder();
+                }
+            },
+
+            outdentPage: function(index) {
+                const page = this.arrPages[index];
+
+                if (page.level == 0) return; // Bereits auf oberster Ebene
+
+                // Parent vom aktuellen Parent holen
+                const currentParent = this.arrPages.find(p => p.structure_id === page.parent_id);
+                if (currentParent) {
+                    page.parent_id = currentParent.parent_id;
+                    page.level = parseInt(page.level) - 1;
+                    this.savePagesOrder();
+                }
+            },
+
+            updatePagesOrder: function(evt) {
+                // Array neu ordnen nach Drag & Drop
+                const movedItem = this.arrPages.splice(evt.oldIndex, 1)[0];
+                this.arrPages.splice(evt.newIndex, 0, movedItem);
+
+                this.savePagesOrder();
+            },
+
+            savePagesOrder: function() {
+                const grouped = {};
+
+                this.arrPages.forEach(page => {
+                    const parentKey = page.parent_id || '0';
+                    if (!grouped[parentKey]) {
+                        grouped[parentKey] = [];
+                    }
+                    grouped[parentKey].push(page);
+                });
+
+                const data = [];
+                Object.keys(grouped).forEach(parentId => {
+                    grouped[parentId].forEach((page, index) => {
+                        data.push({
+                            structure_id: page.structure_id,
+                            parent_id: page.parent_id || '0',
+                            level: page.level,
+                            sorting: index + 1
+                        });
+                    });
+                });
+
+                const url = BASEURL + "controller/cms/sortPages";
+                axios.post(url, { pages: data })
+                    .then((result) => {
+                        console.log('Pages order saved');
+                        // KEIN this.listPages() mehr!
+                    });
+            },
+
+            saveElementsOrder: function(evt) {
+                const movedItem = this.arrElements.splice(evt.oldIndex, 1)[0];
+                this.arrElements.splice(evt.newIndex, 0, movedItem);
+
+                const ids = this.arrElements.map(element => element.content_id);
+
+                const url = BASEURL + "controller/cms/sortElements";
+                axios.post(url, { ids: ids })
+                    .then((result) => {
+                        console.log('Elements order saved');
+                    });
             },
 
         },
@@ -365,6 +504,10 @@ function sortStructureWithSorting(array $items): array {
 
         beforeMount(){
             this.listPages()
+        },
+
+        mounted() {
+            this.initSortable();
         },
 
     })

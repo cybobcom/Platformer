@@ -301,6 +301,10 @@ class CBObject
 
         // Process XML fields
         $processedData = $this->processXmlFieldsForSave($data);
+
+        // NEUE FILTERUNG: Nur gültige DB-Felder durchlassen
+        $processedData = $this->filterValidColumns($processedData);
+
         $processedData = $this->sanitizeDataTypes($processedData); // NEU
 
         // Auto-generate UUID if Primary Key ends with _uid
@@ -426,6 +430,10 @@ class CBObject
 
         // Process XML fields
         $processedData = $this->processXmlFieldsForSave($data);
+
+        // NEUE FILTERUNG: Nur gültige DB-Felder durchlassen
+        $processedData = $this->filterValidColumns($processedData);
+
         $processedData = $this->sanitizeDataTypes($processedData); // NEU
 
         $success = $this->objDatabase->update(
@@ -517,6 +525,34 @@ class CBObject
         $data = ['deleted_at' => null];
 
         return $this->update($data, $restoreId);
+    }
+
+    /**
+     * Filter data to only valid database columns
+     * Keeps: actual DB columns + XML fields (data, media, settings)
+     * Removes: invalid fields that would cause SQL errors
+     */
+    private function filterValidColumns(array $data): array
+    {
+        $filtered = [];
+
+        foreach ($data as $key => $value) {
+            // Allow XML container fields
+            if (in_array($key, ['data', 'media', 'settings'])) {
+                $filtered[$key] = $value;
+                continue;
+            }
+
+            // Allow valid database columns
+            if (isset($this->arrDatabaseColumns[$key])) {
+                $filtered[$key] = $value;
+                continue;
+            }
+
+            // Invalid field - ignore silently (KISS Prinzip)
+        }
+
+        return $filtered;
     }
 
     /**

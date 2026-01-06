@@ -290,11 +290,11 @@ if ( $_REQUEST['id'] != "" ) {
 
                 if (typeof window.mountedApp !== 'undefined') {
                     // vue.js
-                    globalDetailModal.hide();
+                    globalMediumModal.hide();
                     window.mountedApp.listElements('<?php echo $objTmp->getAttribute('structure_id'); ?>');
                 } else {
                     // classic
-                    globalDetailModal.hide();
+                    globalMediumModal.hide();
                     listItems();
 
                 }

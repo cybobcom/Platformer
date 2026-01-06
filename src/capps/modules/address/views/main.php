@@ -1,15 +1,6 @@
 <?php
-
 global $objPlatformUser;
-
-
 ?>
-
-
-
-
-
-
 <div id="app_main">
 
     <div class="container-fluid">
@@ -21,38 +12,36 @@ global $objPlatformUser;
 
             <div class="col text-end">
 
-<div class="d-flex justify-content-end align-items-center gap-2">
-                <div class="positionDEV-absolute" styDEVle="right: 60px; width:200px;padding-top:5px;">
-                    <div styleDEV=" position: absolute;">
-                        <span style="position:absolute; right:10px; top:9px; visibility:hidden; color: gray; font-size: 12px;" :style="searchText.length > 2 ? 'visibility:visible;' : ''" class="id_search_reset bi bi-x-lg" @click="searchText = '';listItems()"></span>
-                        <input name="search" type="text" class="form-control foDEVrmular4 form-control-sm"  placeholder="Finden" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"  id="filter_search" v-model="searchText" />
+                <div class="d-flex justify-content-end align-items-center gap-2">
+
+                    <div>
+                        <div>
+                            <span style="position:absolute; right:10px; top:9px; visibility:hidden; color: gray; font-size: 12px;" :style="searchText.length > 2 ? 'visibility:visible;' : ''" class="id_search_reset bi bi-x-lg" @click="searchText = '';listItems()"></span>
+                            <input name="search" type="text" class="form-control foDEVrmular4 form-control-sm"  placeholder="Finden" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"  id="filter_search" v-model="searchText" />
+                        </div>
                     </div>
-                </div>
 
-                <div class="positionDEV-absolute" styDEVle="right: 20px;">
-                    <a @click="newItem()"><i class="btn btn-lg bi bi-plus-lg"></i></a>
-                </div>
-
-                <div class="dropdown text-end">
-                    <div class=" btn-sm dropdown-toggle " type="button" data-bs-toggle="dropdown" aria-expanded="true" data-bs-auto-close="outside">
-                        <div class="bi bi-three-dots-vertical" style="padding: 0px; margin-top:2px; margin-left: 0px; font-size:21px; color:#999;"></div>
+                    <div>
+                        <a @click="newItem()"><i class="btn btn-lg bi bi-plus-lg"></i></a>
                     </div>
-                    <div class="dropdown-menu " style="width: 320px; padding: 12px; background-color: rgb(255, 255, 255); font-weight: 400; color: rgb(102, 102, 102); line-height: 24px; border-radius: 8px; border: 1px solid rgb(204, 204, 204); box-shadow: rgba(0, 0, 0, 0.15) 0px 0px 16px; position: absolute; inset: 0px 0px auto auto; margin: 0px; transform: translate3d(0px, 35px, 0px);" data-popper-placement="bottom-end">
 
+                    <div class="dropdown text-end">
+                        <div class=" btn-sm dropdown-toggle " type="button" data-bs-toggle="dropdown" aria-expanded="true" data-bs-auto-close="outside">
+                            <div class="bi bi-three-dots-vertical" style="padding: 0px; margin-top:2px; margin-left: 0px; font-size:21px; color:#999;"></div>
+                        </div>
+                        <div class="dropdown-menu " style="width: 320px; padding: 12px; background-color: rgb(255, 255, 255); font-weight: 400; color: rgb(102, 102, 102); line-height: 24px; border-radius: 8px; border: 1px solid rgb(204, 204, 204); box-shadow: rgba(0, 0, 0, 0.15) 0px 0px 16px; position: absolute; inset: 0px 0px auto auto; margin: 0px; transform: translate3d(0px, 35px, 0px);" data-popper-placement="bottom-end">
 
+                            <cb:navigation
+                                    entry="###page_structure_id###"
+                                    highlightDEVPath="1"
+                                    level3="<a href='###LINK###' class='###page_data_icon### ' title='###page_name###'> ###page_name###</a>"
+                                    level3_selected="<a href='###LINK###' class='###page_data_icon### ' title='###page_name###'> ###page_name###</a>"
+                            />
 
-                        <cb:navigation
-                                entry="###page_structure_id###"
-                                highlightDEVPath="1"
-                                level3="<a href='###LINK###' class='###page_data_icon### ' title='###page_name###'> ###page_name###</a>"
-                                level3_selected="<a href='###LINK###' class='###page_data_icon### ' title='###page_name###'> ###page_name###</a>"
-                        />
-
-
+                        </div>
                     </div>
-                </div>
 
-</div>
+                </div>
 
             </div>
 
@@ -86,7 +75,7 @@ global $objPlatformUser;
                     </td>
 
                     <td>
-                            {{item.firstname}} {{item.lastname}}
+                        {{item.firstname}} {{item.lastname}}
                     </td>
 
                     <td>
@@ -120,9 +109,10 @@ global $objPlatformUser;
 
         </table>
 
+    </div>
+
+
 </div>
-
-
 
 <script type="text/javascript">
 
@@ -180,10 +170,33 @@ global $objPlatformUser;
                 var url = BASEURL+"/views/address/editItem/?id="+id;
                 //alert(url);
 
+                /*
                 $( "#detailModalContent" ).html('<div class="mx-auto p-2 text-center ajax_loader"></div>');
                 $( "#detailModalContent" ).load( url, function() {
                     //alert( "Load was performed." );
                 })
+                */
+                /*
+                const container = document.getElementById('detailModalContent');
+                container.innerHTML = '<div class="mx-auto p-2 text-center ajax_loader"></div>';
+
+                axios.get(url, { responseType: 'text' })
+                    .then(response => {
+                        //alert(JSON.stringify(response.data));
+                        container.innerHTML = response.data;
+                    })
+                    .catch(error => {
+                        console.error('Fehler:', error);
+                        this.modalContent = '<p class="text-danger">Fehler beim Laden.</p>';
+                    })
+                    .finally(() => {
+                        this.loading = false;
+                    });
+                */
+
+                CBloadView('#detailModalContent', url, function() {
+                    console.log('View geladen und gemountet');
+                });
 
             },
 
