@@ -210,6 +210,11 @@ if ( $_REQUEST['id'] != "" ) {
   <td>template</td>
     <td><?php echo cb_makeInputForm ("save[template]",$objTmp->getAttribute('template'),"form-control form-control-sm"); ?></td>
   </tr>
+  
+  <tr class="back8">
+  <td>sorting</td>
+    <td><?php echo cb_makeInputForm ("save[sorting]",$objTmp->getAttribute('sorting'),"form-control form-control-sm"); ?></td>
+  </tr>
 
     <tr class="">
         <td>Nutzergruppe</td>

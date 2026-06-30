@@ -32,6 +32,7 @@ if (is_array($_REQUEST['save'])) {
     $dictResponse["response"] = "success";
     $dictResponse["description"] = "ok";
     $dictResponse["id"] = $intID;
+    $dictResponse["error"] = $objTmp->getLastError();
 
 }
 

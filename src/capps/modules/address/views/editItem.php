@@ -22,7 +22,27 @@ if ( $_REQUEST['id'] != "" ) {
 
             <div class="container-fluid">
                 <div class="row g-2">
-
+                    
+                    <div class="form-floating mb-2">
+                        <input type="text" name="save[parent_address_uid]" v-model="dictItem.parent_address_uid" placeholder="<cb:localize>parent_address_uid</cb:localize>" class="form-control form-control-sm">
+                        <label for="save[parent_address_uid]"><cb:localize>parent_address_uid</cb:localize></label>
+                    </div>
+                    
+                    <div class="form-floating mb-2">
+                        <input type="text" name="save[type]" v-model="dictItem.type" placeholder="<cb:localize>type</cb:localize>" class="form-control form-control-sm">
+                        <label for="save[type]"><cb:localize>type</cb:localize></label>
+                    </div>
+                    
+                    <div class="form-floating mb-2">
+                        <input type="text" name="save[customer_number]" v-model="dictItem.customer_number" placeholder="<cb:localize>customer_number</cb:localize>" class="form-control form-control-sm">
+                        <label for="save[customer_number]"><cb:localize>customer_number</cb:localize></label>
+                    </div>
+                    
+                    <div class="form-floating mb-2">
+                        <input type="text" name="save[company]" v-model="dictItem.company" placeholder="<cb:localize>company</cb:localize>" class="form-control form-control-sm">
+                        <label for="save[company]"><cb:localize>company</cb:localize></label>
+                    </div>
+                    
                     <div class="form-floating mb-2">
                         <input type="text" name="save[firstname]" v-model="dictItem.firstname" placeholder="<cb:localize>Firstname</cb:localize>" class="form-control form-control-sm">
                         <label for="save[firstname]"><cb:localize>Firstname</cb:localize></label>
@@ -31,6 +51,26 @@ if ( $_REQUEST['id'] != "" ) {
                     <div class="form-floating mb-2">
                         <input type="text" name="save[lastname]" v-model="dictItem.lastname" placeholder="<cb:localize>Lastname</cb:localize>" class="form-control form-control-sm">
                         <label for="save[lastname]"><cb:localize>Lastname</cb:localize></label>
+                    </div>
+                    
+                    <div class="form-floating mb-2">
+                        <input type="text" name="save[street]" v-model="dictItem.street" placeholder="<cb:localize>street</cb:localize>" class="form-control form-control-sm">
+                        <label for="save[street]"><cb:localize>street</cb:localize></label>
+                    </div>
+                    
+                    <div class="form-floating mb-2">
+                        <input type="text" name="save[postcode]" v-model="dictItem.postcode" placeholder="<cb:localize>postcode</cb:localize>" class="form-control form-control-sm">
+                        <label for="save[postcode]"><cb:localize>postcode</cb:localize></label>
+                    </div>
+                    
+                    <div class="form-floating mb-2">
+                        <input type="text" name="save[city]" v-model="dictItem.city" placeholder="<cb:localize>city</cb:localize>" class="form-control form-control-sm">
+                        <label for="save[city]"><cb:localize>city</cb:localize></label>
+                    </div>
+                    
+                    <div class="form-floating mb-2">
+                        <input type="text" name="save[country]" v-model="dictItem.country" placeholder="<cb:localize>country</cb:localize>" class="form-control form-control-sm">
+                        <label for="save[country]"><cb:localize>country</cb:localize></label>
                     </div>
 
                     <div class="form-floating mb-2">
@@ -41,6 +81,11 @@ if ( $_REQUEST['id'] != "" ) {
                     <div class="form-floating mb-2">
                         <input type="text" name="save[password]" v-model="dictItem.password" placeholder="<cb:localize>Password</cb:localize>" class="form-control form-control-sm">
                         <label for="save[password]"><cb:localize>Password</cb:localize></label>
+                    </div>
+                    
+                    <div class="form-floating mb-2">
+                        <input type="text" name="save[email]" v-model="dictItem.email" placeholder="<cb:localize>email</cb:localize>" class="form-control form-control-sm">
+                        <label for="save[email]"><cb:localize>email</cb:localize></label>
                     </div>
 
                     <div class="form-check m-2 my-3">
@@ -60,7 +105,7 @@ if ( $_REQUEST['id'] != "" ) {
 
                         $arrAddressGroups = explode(",",$objTmp->getAttribute('addressgroups'));
 
-                        $objAG = CBinitObject("Addressgroup");
+                        $objAG = CBinitObject("AddressGroup");
 
                         $arrAG = $objAG->getAllEntries("sorting|name","ASC|ASC",NULL,NULL,"*");
 
@@ -90,9 +135,17 @@ if ( $_REQUEST['id'] != "" ) {
                         </div>
 
                     </div>
+                    
+                </div>
             </div>
 
         </form>
+
+
+        <small>
+            <span @click="generateMCPToken()" class="me-auto bi bi-list"></span> <small>{{dictItem.mcp_token}}</small>
+
+        </div>
 
     </div>
 
@@ -179,6 +232,26 @@ if ( $_REQUEST['id'] != "" ) {
                 if (window.confirm("Möchten Sie den Eintrag wirklich löschen?")) {
                     mountedAppMain.deleteItem(this.identifier);
                 }
+            },
+
+            generateMCPToken:function () {
+
+                var url = BASEURL+"controller/address/generateMCPToken/";
+                url += "?id="+this.identifier;
+
+                axios.get(url)
+                    .then(response => {
+
+                        //
+                        //alert(JSON.stringify(response));
+                        dictItem.mcp_token = response.data
+
+
+                    })
+                    .catch(error => {
+                        console.error(error);
+                    });
+
             },
 
         },

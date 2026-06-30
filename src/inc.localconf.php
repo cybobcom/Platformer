@@ -61,7 +61,9 @@ $arrConf['baseurl'] = detectBaseUrl();
 
 // Normalize all paths
 $arrConf['basedir'] = str_replace('\\', '/', $arrConf['basedir']);
+$arrConf['basedir'] = str_replace('//', '/', $arrConf['basedir']);
 $arrConf['sourcedir'] = str_replace('\\', '/', $arrConf['sourcedir']);
+$arrConf['sourcedir'] = str_replace('//', '/', $arrConf['sourcedir']);
 
 // Derived paths
 $arrConf['securedir'] = str_replace('/src/', '/websecure/', $arrConf['sourcedir']);

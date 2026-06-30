@@ -1,0 +1,42 @@
+<?php
+
+//echo "<pre>"; print_r($_REQUEST); echo "</pre>";
+
+//
+$dictResponse = array();
+$dictResponse["response"] = "error";
+$dictResponse["description"] = "something went wrong";
+
+//
+if (is_array($_REQUEST['save'])) {
+
+    //
+    $objTmp = CBinitObject("Category");
+    //$objTmp = new \capps\modules\database\classes\CBObject(NULL, "capps_address", "address_id");
+
+
+    //
+    $arrSave = array();
+    $arrSave = $_REQUEST['save'];
+    $arrSave['date_created'] = date("Y-m-d H:i:s");
+
+    //
+    $intID = $objTmp->saveContentNew($arrSave);
+
+    //
+    //$objTmp = CBinitObject(ucfirst($strModuleName),$intID);
+
+    //
+    $dictResponse["response"] = "success";
+    $dictResponse["description"] = "ok";
+    $dictResponse["id"] = $intID;
+
+}
+
+
+$output = json_encode($dictResponse, JSON_HEX_APOS);
+
+header('Content-Type: application/json');
+echo $output;
+
+?>

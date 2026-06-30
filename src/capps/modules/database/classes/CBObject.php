@@ -558,7 +558,7 @@ class CBObject
     /**
      * Process XML fields for saving with XSS protection
      */
-    private function processXmlFieldsForSave(array $data): array
+    private function processXmlFieldsForSaveFIRST(array $data): array
     {
         // Process direct XML field arrays
         foreach (['data', 'media', 'settings'] as $xmlField) {
@@ -598,6 +598,58 @@ class CBObject
             if (!empty($fields)) {
                 $xml = '';
                 foreach ($fields as $key => $value) {
+                    $xml .= "<{$key}><![CDATA[{$value}]]></{$key}>\n";
+                }
+                $data[$xmlType] = $xml;
+            }
+        }
+
+        return $data;
+    }
+
+    private function processXmlFieldsForSave(array $data): array
+    {
+        // Collect all XML fields
+        $xmlFields = ['data' => [], 'media' => [], 'settings' => []];
+
+        // Direkte Arrays einsammeln (data => [...])
+        foreach (['data', 'media', 'settings'] as $xmlField) {
+            if (isset($data[$xmlField]) && is_array($data[$xmlField])) {
+                $xmlFields[$xmlField] = $data[$xmlField];
+                unset($data[$xmlField]);
+            }
+        }
+
+        // Einzelfelder einsammeln (data_*, media_*, settings_*)
+        foreach ($data as $key => $value) {
+            foreach (['data_', 'media_', 'settings_'] as $prefix) {
+                if (str_starts_with($key, $prefix)) {
+                    $xmlType = rtrim($prefix, '_');
+                    $fieldName = str_replace($prefix, '', $key);
+                    if ($key === 'media_id') continue;
+                    $xmlFields[$xmlType][$fieldName] = $value;
+                    unset($data[$key]);
+                }
+            }
+        }
+
+        // XML bauen mit merge
+        foreach ($xmlFields as $xmlType => $fields) {
+            if (!empty($fields)) {
+                // 1. Bestehende Felder aus arrAttributes holen
+                $base = [];
+                foreach ($this->arrAttributes as $k => $v) {
+                    if (str_starts_with($k, $xmlType . '_')) {
+                        $base[substr($k, strlen($xmlType) + 1)] = $v;
+                    }
+                }
+                // 2. Neue Werte drüber mergen
+                foreach ($fields as $k => $v) {
+                    $base[$k] = $this->sanitizeXmlValue($v);
+                }
+                // 3. XML bauen
+                $xml = '';
+                foreach ($base as $key => $value) {
                     $xml .= "<{$key}><![CDATA[{$value}]]></{$key}>\n";
                 }
                 $data[$xmlType] = $xml;
@@ -657,6 +709,7 @@ class CBObject
                 }
             }
             */
+            /*
             foreach ($conditions as $key => $value) {
                 // String "NULL" → IS NULL
                 if ($value === "NULL" || $value === 'NULL') {
@@ -666,6 +719,51 @@ class CBObject
                     $whereClauses[] = "`{$key}` IN (" . implode(',', $placeholders) . ")";
                     $params = array_merge($params, $value);
                 } else {
+                    $whereClauses[] = "`{$key}` = ?";
+                    $params[] = $value;
+                }
+            }
+            */
+            foreach ($conditions as $key => $value) {
+                // String "NULL" → IS NULL
+                if ($value === "NULL" || $value === 'NULL') {
+                    $whereClauses[] = "`{$key}` IS NULL";
+                }
+                // String mit "NOT " Prefix
+                elseif (is_string($value) && str_starts_with($value, 'NOT ')) {
+                    $cleanValue = substr($value, 4); // "NOT " entfernen
+
+                    // data_ fields → XML LIKE
+                    if (str_starts_with($key, 'data_') || str_starts_with($key, 'media_') || str_starts_with($key, 'settings_')) {
+                        $fieldName = substr($key, strpos($key, '_') + 1);
+                        if (str_starts_with($key, 'data_')) {
+                            $fieldName = substr($key, 5);
+                            $xmlField = 'data';
+                        } elseif (str_starts_with($key, 'media_')) {
+                            $fieldName = substr($key, 6);
+                            $xmlField = 'media';
+                        } elseif (str_starts_with($key, 'settings_')) {
+                            $fieldName = substr($key, 9);
+                            $xmlField = 'settings';
+                        }
+                        $xmlField = str_starts_with($key, 'data_') ? 'data' : (str_starts_with($key, 'media_') ? 'media' : 'settings');
+                        $whereClauses[] = "`{$xmlField}` NOT LIKE ?";
+                        $params[] = "%<{$fieldName}><![CDATA[{$cleanValue}]]></{$fieldName}>%";
+                    }
+                    // Normal fields
+                    else {
+                        $whereClauses[] = "(`{$key}` NOT LIKE ? OR `{$key}` IS NULL)";
+                        $params[] = $cleanValue;
+                    }
+                }
+                // Array IN()
+                elseif (is_array($value)) {
+                    $placeholders = array_fill(0, count($value), '?');
+                    $whereClauses[] = "`{$key}` IN (" . implode(',', $placeholders) . ")";
+                    $params = array_merge($params, $value);
+                }
+                // Normal =
+                else {
                     $whereClauses[] = "`{$key}` = ?";
                     $params[] = $value;
                 }

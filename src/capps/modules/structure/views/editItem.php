@@ -170,7 +170,7 @@ if ($_REQUEST['id'] != "") {
                 data: tmp,
                 dataType: 'text',  // <<< wichtig
                 success: function(result) {
-                    alert(result);
+                    //alert(result);
 
 
                     if (typeof window.mountedApp !== 'undefined') {

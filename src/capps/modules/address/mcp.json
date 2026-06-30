@@ -1,0 +1,85 @@
+{
+  "enabled": true,
+  "class": "Address",
+  "label": "Adressen",
+  "description": "Adressverwaltung mit Feld-Level Permissions",
+  "operations": {
+    "list": {
+      "roles": []
+    },
+    "get": {
+      "roles": []
+    },
+    "create": {
+      "roles": ["admin", "user"]
+    },
+    "update": {
+      "roles": ["admin", "user"]
+    },
+    "delete": {
+      "roles": ["admin"]
+    }
+  },
+  "fields": {
+    "firstname": {
+      "type": "string",
+      "roles": [],
+      "label": "Vorname"
+    },
+    "lastname": {
+      "type": "string",
+      "roles": [],
+      "label": "Nachname"
+    },
+    "company": {
+      "type": "string",
+      "roles": [],
+      "label": "Firma"
+    },
+    "email": {
+      "type": "string",
+      "roles": [],
+      "label": "E-Mail"
+    },
+    "street": {
+      "type": "string",
+      "roles": [],
+      "label": "Straße"
+    },
+    "postcode": {
+      "type": "string",
+      "roles": [],
+      "label": "PLZ"
+    },
+    "city": {
+      "type": "string",
+      "roles": [],
+      "label": "Stadt"
+    },
+    "phone": {
+      "type": "string",
+      "roles": [],
+      "label": "Telefon"
+    },
+    "login": {
+      "type": "string",
+      "roles": ["admin"],
+      "label": "Login (nur Admin)"
+    },
+    "password": {
+      "type": "string",
+      "roles": ["admin"],
+      "label": "Passwort (nur Admin)"
+    },
+    "addressgroups": {
+      "type": "string",
+      "roles": ["admin"],
+      "label": "Gruppen (nur Admin)"
+    },
+    "active": {
+      "type": "boolean",
+      "roles": ["admin"],
+      "label": "Aktiv (nur Admin)"
+    }
+  }
+}

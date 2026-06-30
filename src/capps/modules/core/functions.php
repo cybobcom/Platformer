@@ -899,3 +899,512 @@ function cb_makeSelectForm ($formName,$arrayValues,$arrayText="",$select=NULL,$s
     $strTmp .= '</select>';
     return $strTmp;
 }
+
+
+if ( !function_exists("generatePreview") ) {
+    function generatePreview($target,$vF,$_width=320,$_height=320) {
+
+        //
+        ini_set("memory_limit",-1);
+
+        // not available on dsgv server
+        // http://www.webdesignblog.asia/web-design/hosting/install-php-gd-on-ubuntu-without-recompiling-php/#sthash.MWGyBPYO.dpbs
+        //imageantialias($im, true);
+
+        $image = imagecreatetruecolor($_width,$_height);
+        $transparency = imagecolorallocatealpha($image, 0, 0, 0, 127);
+        imagefill($image, 0, 0, $transparency);
+
+        //
+        $arrPathInfo = pathinfo($vF);
+        $file = $target . $vF;
+
+        //
+        if ( $arrPathInfo['extension'] != "pdf" ) {
+            /*
+            // 2021-01-17 bob : to avoid 90 degree rotated image when upload by smartphone
+            if ( $arrPathInfo['extension'] == "jpg" ) correctImageOrientation($target . $vF);
+            if ( $arrPathInfo['extension'] == "jpeg" ) correctImageOrientation($target . $vF);
+
+            if ( $arrPathInfo['extension'] == "png" ) $image = @imagecreatefrompng($target.$vF);
+            if ( $arrPathInfo['extension'] == "jpg" ) $image = @imagecreatefromjpeg($target.$vF);
+            if ( $arrPathInfo['extension'] == "jpeg" ) $image = @imagecreatefromjpeg($target.$vF);
+            if ( $arrPathInfo['extension'] == "gif" ) $image = @imagecreatefromgif($target.$vF);
+            */
+
+            // 2026-02-09 Bob: check info not extension
+
+            /* echtes Bild prüfen */
+            $imgInfo = @getimagesize($file);
+            if ($imgInfo === false) {
+                // kein gültiges Bild → abbrechen oder Fehler
+                return;
+            }
+
+            // 2021-01-17 bob : to avoid 90 degree rotated image when upload by smartphone
+            if ($imgInfo['mime'] === 'image/jpeg') {
+                correctImageOrientation($file);
+            }
+
+            if ($imgInfo['mime'] === 'image/png') {
+                $image = @imagecreatefrompng($file);
+            }
+            if ($imgInfo['mime'] === 'image/jpeg') {
+                $image = @imagecreatefromjpeg($file);
+            }
+            if ($imgInfo['mime'] === 'image/gif') {
+                $image = @imagecreatefromgif($file);
+            }
+
+        }
+
+
+
+        //
+        // pdf
+        //
+        if ( $arrPathInfo['extension'] == "pdf" ) {
+
+
+            //
+            $strName = $vF;
+            $strName = str_replace(".pdf","",$strName);
+
+            //
+            $strThumbName = "_thumb_".$strName.".pdf.jpg";
+
+            //dev
+            //echo $target.$strThumbName;exit;
+
+            //
+            $dateSource = 0;
+            $pathSource = $target.$vF;
+            if ( !stristr($pathSource, BASEDIR) ) $pathSource = BASEDIR.$pathSource;
+            if ( is_file($pathSource) ) {
+                $dateSource = filemtime($pathSource);
+            }
+            //echo $dateSource;exit;
+
+            //
+            $dateThumb = 0;
+            $pathThumb = $target."".$strThumbName;
+            if ( !stristr($pathThumb, BASEDIR) ) $pathThumb = BASEDIR.$pathThumb;
+            if ( is_file($pathThumb) ) {
+                $dateThumb = filemtime($pathThumb);
+            }
+            //echo $dateThumb;exit;
+
+            //
+            $boolCheckNewerSource = false;
+            if ( $dateSource > $dateThumb ) $boolCheckNewerSource = true;
+            if ( isset($_REQUEST['force_generation']) && $_REQUEST['force_generation'] == "1" ) $boolCheckNewerSource = true;
+
+            if ( is_file($target."".$strThumbName) && !$boolCheckNewerSource ) {
+                //echo "DEV1";exit;
+
+                $image = @imagecreatefromjpeg($target.$strThumbName);
+                $vF = $strThumbName;
+
+            } else {
+                //echo "DEV2";exit;
+
+                $path = "";
+                $boolInstall = true;
+                exec ("whereis ImageMagick",$whereis);
+                //echo "exec (\"whereis ImageMagick\",$whereis);<br>";
+                //echo "t<br>";
+                //print_r($whereis);
+
+
+
+
+                if ($whereis[0] == 'ImageMagick:') {
+                    $boolInstall = false;
+
+                    exec ("dpkg -L imagemagick",$whereis);
+                    //echo "<pre>"; print_r($whereis); echo "</pre>";
+
+                    if ( is_array($whereis) && count($whereis) >= 1 ) {
+
+                        $strPathConvert = "";
+                        foreach ( $whereis as $r=>$v ) {
+                            if ( stristr($v,"convert") )  $strPathConvert = $v;
+                        }
+                        //echo "<pre>"; print_r($strPathConvert); echo "</pre>";
+
+                        if ( $strPathConvert != "" ) $path = $strPathConvert;
+
+                    }
+
+                }
+                if ($boolInstall) {
+
+                    //echo "yes<br>";
+
+                    exec ("whereis convert",$whereisconvert);
+                    if ($whereisconvert[0] != 'convert:') {
+                        $strConvertPath = str_replace('convert:','',$whereisconvert[0]);
+                        list ($path,$dummy) = explode(' ',trim($strConvertPath));
+                    }
+
+                    // Path to New Image Magick, wird nicht benötigt, da TIFF Bearbeitung  nicht funktioniert
+                    //$path = '/usr/local/imagemagick/bin/convert';
+                    //echo $path;
+
+
+                } else {
+                    //echo "no";
+                    exec ("whereis convert",$whereis2);
+                    //echo "exec (\"whereis ImageMagick\",$whereis2);<br>";
+                    //echo "t<br>";
+                    //echo "<pre>"; print_r($whereis2); echo "</pre>";
+                    $arrConvert = explode(" ", $whereis2[0]);
+                    //echo "$whereis2<pre>"; print_r($arrConvert); echo "</pre>";
+
+                    if ( $arrConvert[1] != "" ) $path = $arrConvert[1];
+
+                    /*
+                                    if ( !extension_loaded('imagick') ) {
+                                        echo 'imagick not installed';
+                                    } else {
+                                        echo 'imagick IS installed';
+                                    }
+                    */
+
+                    /*
+                                    echo "<pre>";
+                    system($arrConvert[1]." -version");
+                    echo "</pre>";
+                    */
+
+                }
+
+                if ( $path != "" ) {
+
+                    // Path to New Image Magick, wird nicht benötigt, da TIFF Bearbeitung  nicht funktioniert
+                    //$path = '/usr/local/imagemagick/bin/convert';
+                    //echo $path;
+
+
+                    /*
+                    $f = $_REQUEST['f'];
+                   // $f = str_replace(".pdf","",$f);
+                    list($strName,$strExtension) = explode('.', $f,2);
+
+                    $strNameReflect = $strName."_4";
+                    */
+
+                    /*
+                    $strComado = "$path -density 300 $target".$_REQUEST['f']." ".$target.$f.".jpg";
+                    $strComado = "$path -density 72 $target".$_REQUEST['f']." ".$target.$f.".jpg";
+                    */
+
+
+
+
+                    // In JPG Konvertieren
+                    //$strComado = "$path -density 300 -colorspace cmyk $target".$_REQUEST['f']." ".$target.$strName.".jpg";
+                    //$strComado = "$path -profile /home/web14/html/data/script/CMYK/CoatedFOGRA39.icc  -colorspace CMYK -density 72 $target".$_REQUEST['f']." -profile /home/web14/html/data/script/RGB/AdobeRGB1998.icc  -colorspace RGB ".$target.$strName.".jpg";
+                    //$strComado = "$path -density 72  -profile ".PATH_TO_DATA."/script/CMYK/ISOcoated_v2_eci.icc -colorspace cmyk $target".$_REQUEST['f']." -resize 800 ".$target.$strName.".jpg";
+
+                    //		  $strComado = "$path -density 72 -colorspace cmyk $target".$_REQUEST['f']." -resize 1000 ".$target.$strName.".jpg";
+
+                    //$strName = $vF;
+                    //$strName = str_replace(".pdf","",$strName);
+
+                    $file = $target.$vF;
+//				  $strComado = "$path -density 72 ".$file."[0] -resize 50% ".$target.$strThumbName;
+                    $strComado = "$path -density 72 -colorspace rgb -background white -alpha remove ".$file."[0] -resize 50% ".$target.$strThumbName;
+                    // DEV -verbose
+                    $strComado = "$path -verbose -density 72 -colorspace rgb -background white -alpha remove ".$file."[0] -resize 50% ".$target.$strThumbName;
+
+                    //echo "<pre>"; print_r( $strComado ); echo "</pre>";
+
+                    //$IMagick =  new Imagick();
+                    $return_var = shell_exec($strComado);
+                    //print_r( $return_var );
+                    //echo "return_var<pre>"; print_r( $return_var ); echo "</pre>";exit;
+
+
+                    //
+                    $image = @imagecreatefromjpeg($target.$strThumbName);
+                    $vF = $strThumbName;
+
+                }
+
+
+            }
+
+            //$test = new Imagick();
+            //print_r($test);
+        }
+
+        //
+        //
+        //
+        if ( stristr($vF,".mp4") || stristr($vF,".m4v") || stristr($vF,".mpg") || stristr($vF,".mpeg") ) {
+
+            //
+            $strName = $vF;
+            //$strName = str_replace(".pdf","",$strName);
+
+            //
+// 		$strThumbName = "_thumbpdf_".$strName.".jpg";
+            $strThumbName = "_thumb_".$strName.".jpg";
+
+
+            $file = $target.$vF;
+            /*
+                    $file = 'https://lab.forscherhaus-gesamtschule.de/ajax/&am=Document.showItem&item=19588';
+                    $file = 'https://lab.forscherhaus-gesamtschule.de/data/media/video/test.mp4';
+                    $file = 'https://lab.forscherhaus-gesamtschule.de/data/script/video_passthrough.php';
+            */
+
+//		$url = "http://web1.login.cybob-five.com/api/video/?time=00:00:01&video=".$file."";
+//		$url = "http://web1.login.cybob-five.com/api/video/?time=00:00:01&file=".$file."&video=https://lab.forscherhaus-gesamtschule.de/data/script/video_passthrough.php";
+//		$url = "http://web1.login.cybob-five.com/api/video/?time=00:00:01&file=".$file."&video=https://www.fvsg-buende.de/preview/data/script/backend/video_passthrough.php";
+
+   //            var url = '/controller/medialibrary/updateItem/';
+
+            /*
+            $url = "http://web1.login.cybob-five.com/api/video/?time=00:00:01&file=".$file."&video=".BASEURL."controller/medialibrary/videoPassthrough/";
+            mail("robert.heuer@cybob.com","video",print_r($url,true));
+            //echo "mp4 url<pre>"; print_r($url); echo "</pre>";	exit;
+            $data = file_get_contents($url);
+            //echo "mp4 data<pre>"; print_r($data); echo "</pre>";	exit;
+            //echo "mp4 data<pre>"; print_r( $target.'---'.$strThumbName ); echo "</pre>";	exit;
+            file_put_contents($target.$strThumbName, $data);
+// 		file_put_contents($target.$strThumbName."_DEV", $data);
+*/
+
+
+            $video = $file;
+            $time = "00:00:01";
+            $thumbnail = BASEDIR.'../cache/thumbnail.jpg';
+
+
+            shell_exec('ffmpeg -i "'.$video.'" -ss '.$time.' -vframes 1 -filter:v scale="280:-1" -f image2 -y "'.$thumbnail.'" 2>&1');
+
+
+            $data = file_get_contents($thumbnail);
+            file_put_contents($target.$strThumbName, $data);
+
+
+
+            //
+            $image = @imagecreatefromjpeg($target.$strThumbName);
+            $vF = $strThumbName;
+        }
+
+
+         //$image = imagecreatefrompng($target.$vF);
+        //$arrImageSize = getimagesize($target.$vF);
+
+
+//        //
+//        $arrPathInfo = pathinfo($vF);
+//
+//        //
+//        if ( $arrPathInfo['extension'] != "pdf" ) {
+//
+//            // 2021-01-17 bob : to avoid 90 degree rotated image when upload by smartphone
+//            if ( $arrPathInfo['extension'] == "jpg" ) correctImageOrientation($target . $vF);
+//            if ( $arrPathInfo['extension'] == "jpeg" ) correctImageOrientation($target . $vF);
+//
+//            if ( $arrPathInfo['extension'] == "png" ) $image = @imagecreatefrompng($target.$vF);
+//            if ( $arrPathInfo['extension'] == "jpg" ) $image = @imagecreatefromjpeg($target.$vF);
+//            if ( $arrPathInfo['extension'] == "jpeg" ) $image = @imagecreatefromjpeg($target.$vF);
+//            if ( $arrPathInfo['extension'] == "gif" ) $image = @imagecreatefromgif($target.$vF);
+//
+//        }
+
+        // the desired width of the image
+        $width = $_width;
+        $height = $_height;
+
+        $max = $_width;
+        if ( $_height > $_width ) $max = $_height;
+
+// content type
+//header('Content-Type: image/jpeg');
+
+        $width_orig = $_width;
+        $height_orig = $_height;
+        if ( is_file($target.$vF) ) {
+            list($width_orig, $height_orig) = getimagesize($target.$vF);
+
+            if ( $width_orig <= 0 ) $width_orig = $_width;
+            if ( $height_orig <= 0 ) $height_orig = $_height;
+        }
+
+        $ratio_orig = $width_orig/$height_orig;
+//echo $ratio_orig."<br>";
+        if ( $ratio_orig < 1 ) {
+            $width = $max * $ratio_orig;
+        } else {
+            $height = $max/$ratio_orig;
+        }
+
+//echo $width." - ".$height."<br>";
+        /*
+        $ratio_max = 1;
+        if ( $width > $max ) {
+            $ratio_max = $max/$width;
+            //echo "w ".$ratio_max."<br>";
+        }
+
+        if ( $height > $max ) {
+            $ratio_max = $max/$height;
+            //echo "h ".$ratio_max."<br>";
+        }
+
+        $height = $height * $ratio_max;
+        $width = $width * $ratio_max;
+        */
+//echo $width." - ".$height."<br>";
+//echo $width_orig." - ".$height_orig."<br>";
+
+        $offset_x = 0;
+        $offset_y = 0;
+        if ( $width < $max) $offset_x = ( $max - $width ) / 2;
+        if ( $height < $max) $offset_y = ( $max - $height ) / 2;
+
+
+
+        $im  = imagecreatetruecolor($max,$max);
+
+        /*
+        $rgb_bg = imagecolorallocate($im, 255, 255, 255);
+        imagecolortransparent($im,$rgb_bg); // set transparence
+        imagefill($im, 0, 0, $rgb_bg);
+        */
+
+
+// Transparent Background
+        imagealphablending($im, false);
+        $transparency = imagecolorallocatealpha($im, 0, 0, 0, 127);
+        imagefill($im, 0, 0, $transparency);
+        imagesavealpha($im, true);
+
+        //imagecopyresampled($im, $image, 0, 0, 0, 0, 100, 100, $arrImageSize[0], $arrImageSize[1]);
+        imagecopyresampled($im, $image, (int) round($offset_x), (int) round($offset_y), 0, 0, (int) round($width), (int) round($height), (int) round($width_orig), (int) round($height_orig));
+
+        //echo $im;
+        //header("Content-type: image/png");
+        //imagepng($im);
+
+        ob_start();
+        imagepng($im);
+        $contents =  ob_get_contents();
+        ob_end_clean();
+
+        imagedestroy($im);
+
+
+        return $contents;
+
+    }
+}
+
+//
+// https://medium.com/thetiltblog/fixing-rotated-mobile-image-uploads-in-php-803bb96a852c
+//
+if ( !function_exists("correctImageOrientation") ) {
+    function correctImageOrientation($filename) {
+        if (function_exists('exif_read_data')) {
+            $exif = exif_read_data($filename);
+            if($exif && isset($exif['Orientation'])) {
+                $orientation = $exif['Orientation'];
+                if($orientation != 1){
+                    $img = imagecreatefromjpeg($filename);
+                    $deg = 0;
+                    switch ($orientation) {
+                        case 3:
+                            $deg = 180;
+                            break;
+                        case 6:
+                            $deg = 270;
+                            break;
+                        case 8:
+                            $deg = 90;
+                            break;
+                    }
+                    if ($deg) {
+                        $img = imagerotate($img, $deg, 0);
+                    }
+                    // then rewrite the rotated image back to the disk as $filename
+                    imagejpeg($img, $filename, 80);
+                } // if there is some rotation necessary
+            } // if have the exif orientation info
+        } // if function exists
+    }
+}
+
+
+if ( !function_exists("getFilesizeWithPath") ) {
+    function getFilesizeWithPath($path) {
+        $bytes = sprintf('%u', @filesize($path));
+
+        if ($bytes > 0)
+        {
+            $unit = intval(log((float)$bytes, 1024));
+            $units = array('B', 'KB', 'MB', 'GB');
+
+            if (array_key_exists($unit, $units) === true)
+            {
+                return sprintf('%1.1f %s', $bytes / pow(1024, $unit), $units[$unit]);
+//            return sprintf('%d %s', $bytes / pow(1024, $unit), $units[$unit]);
+            }
+        }
+
+        return $bytes;
+    }
+}
+
+if ( !function_exists("formatSizeUnits") ) {
+    function formatSizeUnits($bytes) {
+        if ($bytes >= 1073741824)
+        {
+            $bytes = number_format($bytes / 1073741824, 2) . ' GB';
+        }
+        elseif ($bytes >= 1048576)
+        {
+            $bytes = number_format($bytes / 1048576, 2) . ' MB';
+        }
+        elseif ($bytes >= 1024)
+        {
+            $bytes = number_format($bytes / 1024, 2) . ' KB';
+        }
+        elseif ($bytes > 1)
+        {
+            $bytes = $bytes . ' bytes';
+        }
+        elseif ($bytes == 1)
+        {
+            $bytes = $bytes . ' byte';
+        }
+        else
+        {
+            $bytes = '0 bytes';
+        }
+
+        return $bytes;
+    }
+}
+
+/*
+   function human_filesize($bytes, $decimals = 2) {
+     $sz = 'BKMGTP';
+     $factor = floor((strlen($bytes) - 1) / 3);
+     return sprintf("%.{$decimals}f ", $bytes / pow(1024, $factor)) . @$sz[$factor];
+   }
+*/
+
+//http://jeffreysambells.com/2012/10/25/human-readable-filesize-php
+function human_filesize($bytes, $dec = 2) {
+    $size   = array('B', 'kB', 'MB', 'GB');
+    $factor = floor((strlen($bytes) - 1) / 3);
+
+    return sprintf("%.{$dec}f", $bytes / pow(1024, $factor)) . ' ' . @$size[$factor];
+}
+

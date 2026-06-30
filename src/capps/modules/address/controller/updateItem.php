@@ -4,7 +4,7 @@
 $controller = CBinitController('Address');
 
 //
-$controller->validateRequired(['id','save']);
+$controller->validateRequired(['id']);
 
 //
 if (!$controller->load($_REQUEST['id'])) {
@@ -13,7 +13,7 @@ if (!$controller->load($_REQUEST['id'])) {
 
 //
 $arrSave = array();
-$arrSave = $_REQUEST['save'];
+$arrSave = $_REQUEST['save']??[];
 $arrSave['date_updated'] = date("Y-m-d H:i:s");
 
 //

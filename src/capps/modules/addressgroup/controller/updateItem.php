@@ -2,14 +2,14 @@
 
 //echo "<pre>"; print_r($_REQUEST); echo "</pre>";exit;
 
-if ( $_REQUEST['id'] != "" ) {
+if ( isset($_REQUEST['id']) && $_REQUEST['id'] != "" ) {
 	
 	//echo "<pre>"; print_r($_REQUEST); echo "</pre>";
 	
 	//if ( $_REQUEST['action'] == "saveModalNewCategory" ) {
 		
 		$arrSave = array();
-		$arrSave = $_REQUEST['save'];
+		$arrSave = $_REQUEST['save'] ?? [];
  		$arrSave['date_updated'] = date("Y-m-d H:i:s");
 	
 		//$objTmp = CBinitObject("Address",$_REQUEST['id']);

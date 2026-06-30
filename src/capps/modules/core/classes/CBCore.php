@@ -163,7 +163,7 @@ class CBCore
         $type = strtolower($segments[0]);
 
         // Script routes (interface, control, view)
-        if (in_array($type, ['interface', 'control', 'view', 'views', 'controller'])) {
+        if (in_array($type, ['interface', 'control', 'view', 'views', 'controller', 'api', 'cron'])) {
             $module = $segments[1] ?? 'home';
             $option = $segments[2] ?? '';
             $script = $this->findScriptPath($type, $module, $option, $segments);
@@ -197,6 +197,9 @@ class CBCore
         if ($type === 'views') $typeVariants[] = 'view';
         if ($type === 'control') $typeVariants[] = 'controller';
         if ($type === 'controller') $typeVariants[] = 'control';
+        if ($type === 'api') $typeVariants[] = 'api';
+        if ($type === 'interface') $typeVariants[] = 'interface';
+        if ($type === 'cron') $typeVariants[] = 'cron';
 
         // Get all configured vendors (sorted by priority)
         $vendors = CONFIGURATION['cbinit']['vendors'] ?? [];

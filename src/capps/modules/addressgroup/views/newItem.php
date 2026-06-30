@@ -74,6 +74,8 @@ $(document).on('click', '.classid_button_insert', function () {
 			 //alert( "Load was performed. "+url );
 			 //$('#myModalDetails').html(result);
 
+            //alert(JSON.stringify(result));
+
             if (result.response == "success") {
                 editItem(result.id);
             } else {

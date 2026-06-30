@@ -62,8 +62,8 @@ if ( isset($_REQUEST['format']) && $_REQUEST['format'] == "json" ) {
     <table class="table table-sm" id="table_list">
         <thead>
         <tr>
-            <th class="cb_table_first_row"></th>
-            <th>Name</th>
+            <th></th>
+            <th>Name.</th>
             <th>Login</th>
             <th>Addressgroups</th>
             <th>letzter Login</th>
@@ -92,7 +92,9 @@ if ( isset($_REQUEST['format']) && $_REQUEST['format'] == "json" ) {
                     <td>
                         <div>
                             <?php
-                            //echo cb_makeCheckboxForm ("save[".($strID)."]","");
+                            echo '<b>'.$objTmp->getAttribute('company').'</b><br>';
+                            echo $objTmp->getAttribute('type').'<br>';
+                            echo $objTmp->getAttribute('parent_address_uid').'<br>';
                             ?>
                         </div>
                     </td>

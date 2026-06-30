@@ -55,7 +55,7 @@ global $objPlatformUser;
         <table class="table table-sm" id="table_list">
             <thead>
             <tr>
-                <th class="cb_table_first_row"></th>
+                <th></th>
                 <th>Name</th>
                 <th>Login</th>
                 <th>Addressgroups</th>
@@ -70,7 +70,10 @@ global $objPlatformUser;
 
                     <td>
                         <div>
-
+                            {{item.customer_number}}<br>
+                            <b>{{item.company}}</b><br>
+                            {{item.type}}<br>
+                            {{item.parent_address_uid}}<br>
                         </div>
                     </td>
 
