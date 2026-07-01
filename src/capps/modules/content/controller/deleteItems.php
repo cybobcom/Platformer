@@ -1,5 +1,6 @@
 <?php
 
+CBAuth('admin');
 
 if ( isset($_REQUEST['save']) ) {
 	

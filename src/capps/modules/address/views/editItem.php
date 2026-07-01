@@ -142,10 +142,8 @@ if ( $_REQUEST['id'] != "" ) {
         </form>
 
 
-        <small>
             <span @click="generateMCPToken()" class="me-auto bi bi-list"></span> <small>{{dictItem.mcp_token}}</small>
 
-        </div>
 
     </div>
 

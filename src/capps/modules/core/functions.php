@@ -649,11 +649,25 @@ function parseTemplate($_strTemplate, $_arrEntry, $_prefix = "", $_clean = true,
 
 function CBLog($data, string $message = ''): void
 {
-   // if (defined('DEBUG_MODE') && DEBUG_MODE) {
-        echo "$message: <pre>"; print_r($data); echo "</pre>";
-        $logMessage = $message ? $message . ': ' : '';
-        error_log($logMessage . print_r($data, true));
+    // if (defined('DEBUG_MODE') && DEBUG_MODE) {
+    echo "$message: <pre>"; print_r($data); echo "</pre>";
+    $logMessage = $message ? $message . ': ' : '';
+    error_log($logMessage . print_r($data, true));
     //}
+}
+
+/**
+ * Set auth mode for current controller/view/api/cron
+ * Called from within controller files to override the default.
+ *
+ * Default: controller/ = secure, everything else = public
+ *
+ * @param string $mode 'public' = no auth required, any other value = required permission group
+ */
+function CBAuth(string $mode = ''): void
+{
+    $GLOBALS['_cbRouteAuth'] = $mode === 'public' ? 'public' : 'secure';
+    $GLOBALS['_cbRouteGroup'] = $mode === 'public' ? '' : $mode;
 }
 
 /**
@@ -1164,7 +1178,7 @@ if ( !function_exists("generatePreview") ) {
 //		$url = "http://web1.login.cybob-five.com/api/video/?time=00:00:01&file=".$file."&video=https://lab.forscherhaus-gesamtschule.de/data/script/video_passthrough.php";
 //		$url = "http://web1.login.cybob-five.com/api/video/?time=00:00:01&file=".$file."&video=https://www.fvsg-buende.de/preview/data/script/backend/video_passthrough.php";
 
-   //            var url = '/controller/medialibrary/updateItem/';
+            //            var url = '/controller/medialibrary/updateItem/';
 
             /*
             $url = "http://web1.login.cybob-five.com/api/video/?time=00:00:01&file=".$file."&video=".BASEURL."controller/medialibrary/videoPassthrough/";
@@ -1197,7 +1211,7 @@ if ( !function_exists("generatePreview") ) {
         }
 
 
-         //$image = imagecreatefrompng($target.$vF);
+        //$image = imagecreatefrompng($target.$vF);
         //$arrImageSize = getimagesize($target.$vF);
 
 
@@ -1407,4 +1421,3 @@ function human_filesize($bytes, $dec = 2) {
 
     return sprintf("%.{$dec}f", $bytes / pow(1024, $factor)) . ' ' . @$size[$factor];
 }
-

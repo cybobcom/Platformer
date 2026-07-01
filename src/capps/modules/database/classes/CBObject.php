@@ -30,6 +30,9 @@ class CBObject
     public ?string $strTable = null;
     public ?string $strPrimaryKey = null;
 
+    // Encryption: list of field names to auto-encrypt/decrypt
+    protected array $arrEncryptedFields = [];
+
     /**
      * Constructor - supports both patterns
      */
@@ -182,7 +185,7 @@ class CBObject
             $this->arrAttributes[$key] = is_string($value) ? stripslashes($value ?? '') : $value;
 
             // XML parsing for special fields
-            if (in_array($key, ['data', 'media', 'settings']) && !empty($value)) {
+            if (in_array($key, ['data', 'media', 'settings', 'encrypted']) && !empty($value)) {
                 $this->parseXmlField($key, $value);
             }
         }
@@ -190,6 +193,20 @@ class CBObject
         // Legacy: addressgroups to array
         if (!empty($this->arrAttributes['addressgroups'])) {
             $this->arrAttributes['arrAddressgroups'] = explode(',', $this->arrAttributes['addressgroups']);
+        }
+
+        // Encryption: auto-decrypt fields listed in arrEncryptedFields
+        foreach ($this->arrEncryptedFields as $field) {
+            if (!empty($this->arrAttributes[$field]) && $this->isEncrypted($this->arrAttributes[$field])) {
+                $this->arrAttributes[$field] = $this->decryptValue($this->arrAttributes[$field]);
+            }
+        }
+
+        // Encryption: auto-decrypt encrypted_ XML attributes
+        foreach ($this->arrAttributes as $key => $value) {
+            if (str_starts_with($key, 'encrypted_') && !empty($value)) {
+                $this->arrAttributes[$key] = $this->decryptValue($value);
+            }
         }
     }
 
@@ -538,7 +555,7 @@ class CBObject
 
         foreach ($data as $key => $value) {
             // Allow XML container fields
-            if (in_array($key, ['data', 'media', 'settings'])) {
+            if (in_array($key, ['data', 'media', 'settings', 'encrypted'])) {
                 $filtered[$key] = $value;
                 continue;
             }
@@ -610,19 +627,19 @@ class CBObject
     private function processXmlFieldsForSave(array $data): array
     {
         // Collect all XML fields
-        $xmlFields = ['data' => [], 'media' => [], 'settings' => []];
+        $xmlFields = ['data' => [], 'media' => [], 'settings' => [], 'encrypted' => []];
 
         // Direkte Arrays einsammeln (data => [...])
-        foreach (['data', 'media', 'settings'] as $xmlField) {
+        foreach (['data', 'media', 'settings', 'encrypted'] as $xmlField) {
             if (isset($data[$xmlField]) && is_array($data[$xmlField])) {
                 $xmlFields[$xmlField] = $data[$xmlField];
                 unset($data[$xmlField]);
             }
         }
 
-        // Einzelfelder einsammeln (data_*, media_*, settings_*)
+        // Einzelfelder einsammeln (data_*, media_*, settings_*, encrypted_*)
         foreach ($data as $key => $value) {
-            foreach (['data_', 'media_', 'settings_'] as $prefix) {
+            foreach (['data_', 'media_', 'settings_', 'encrypted_'] as $prefix) {
                 if (str_starts_with($key, $prefix)) {
                     $xmlType = rtrim($prefix, '_');
                     $fieldName = str_replace($prefix, '', $key);
@@ -645,7 +662,12 @@ class CBObject
                 }
                 // 2. Neue Werte drüber mergen
                 foreach ($fields as $k => $v) {
-                    $base[$k] = $this->sanitizeXmlValue($v);
+                    if ($xmlType === 'encrypted') {
+                        // Encrypt values, skip XSS sanitize
+                        $base[$k] = $this->isEncrypted($v) ? $v : $this->encryptValue($v);
+                    } else {
+                        $base[$k] = $this->sanitizeXmlValue($v);
+                    }
                 }
                 // 3. XML bauen
                 $xml = '';
@@ -653,6 +675,13 @@ class CBObject
                     $xml .= "<{$key}><![CDATA[{$value}]]></{$key}>\n";
                 }
                 $data[$xmlType] = $xml;
+            }
+        }
+
+        // Encryption: auto-encrypt fields listed in arrEncryptedFields
+        foreach ($this->arrEncryptedFields as $field) {
+            if (!empty($data[$field]) && !$this->isEncrypted($data[$field])) {
+                $data[$field] = $this->encryptValue($data[$field]);
             }
         }
 
@@ -839,8 +868,14 @@ class CBObject
 
         $limitClause = isset($options['limit']) ? "LIMIT {$options['limit']}" : '';
         $select = $options['select'] ?? '*';
+        $join = $options['join'] ?? '';
 
-        $query = "SELECT {$select} FROM `{$this->strTable}` {$where} {$normalOrderBy} {$limitClause}";
+        // Auto-join: nur Tabellenname angegeben (kein Leerzeichen) → Statement automatisch erzeugen
+        if ($join !== '' && !str_contains($join, ' ')) {
+            $join = "LEFT JOIN {$join} ON {$join}.{$this->strPrimaryKey} = {$this->strTable}.{$this->strPrimaryKey}";
+        }
+
+        $query = "SELECT {$select} FROM `{$this->strTable}` {$join} {$where} {$normalOrderBy} {$limitClause}";
 
         $results = $this->objDatabase->get($query, $params);
 
@@ -980,7 +1015,8 @@ class CBObject
         ?array $arrCondition = null,
         ?string $selection = null,
         string $result = "",
-        ?int $limit = null
+        ?int $limit = null,
+        ?string $join = null
     ): array {
         // Delegate to findAll for unified logic
         $options = [];
@@ -990,6 +1026,7 @@ class CBObject
         if ($selection) $options['rawWhere'] = $selection;
         if ($result) $options['select'] = $result;
         if ($limit) $options['limit'] = $limit;
+        if ($join) $options['join'] = $join;
 
         return $this->findAll($arrCondition, $options);
     }
@@ -1469,6 +1506,57 @@ class CBObject
             }
         }
         return $data;
+    }
+
+    // ================================================================
+    // ENCRYPTION HELPERS
+    // ================================================================
+
+    /**
+     * Get encryption key from config constant
+     */
+    public function getEncryptionKey(): string|false
+    {
+        if (defined('ENCRYPTION_KEY32') && ENCRYPTION_KEY32 !== '') {
+            return ENCRYPTION_KEY32;
+        }
+        return false;
+    }
+
+    /**
+     * Encrypt a plaintext value (AES-256-CBC)
+     * Returns plaintext unchanged if no key configured
+     */
+    public function encryptValue(string $plaintext): string
+    {
+        $key = $this->getEncryptionKey();
+        if (!$key) return $plaintext;
+        $iv = openssl_random_pseudo_bytes(16);
+        $cipher = openssl_encrypt($plaintext, 'AES-256-CBC', $key, 0, $iv);
+        return base64_encode($iv . '::' . $cipher);
+    }
+
+    /**
+     * Decrypt an encrypted value
+     * Returns value unchanged if not encrypted or no key configured
+     */
+    public function decryptValue(string $encoded): string
+    {
+        $key = $this->getEncryptionKey();
+        if (!$key) return $encoded;
+        $parts = explode('::', base64_decode($encoded), 2);
+        if (count($parts) !== 2) return $encoded;
+        return openssl_decrypt($parts[1], 'AES-256-CBC', $key, 0, $parts[0]) ?: $encoded;
+    }
+
+    /**
+     * Check if a value is already encrypted
+     */
+    public function isEncrypted(string $value): bool
+    {
+        $decoded = base64_decode($value, true);
+        if ($decoded === false) return false;
+        return str_contains($decoded, '::');
     }
 
 }

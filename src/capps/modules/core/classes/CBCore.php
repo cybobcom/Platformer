@@ -62,7 +62,21 @@ class CBCore
         $route = $this->parseRequest($_REQUEST, $_SERVER["REQUEST_URI"] ?? '');
         $this->detectResponseType($route);
 
-        // 2. Set security headers
+        // 2. Session timeout check (30 minutes inactivity)
+        if (!empty($_SESSION[PLATFORM_IDENTIFIER]['login_verified'])) {
+            $lastActivity = $_SESSION[PLATFORM_IDENTIFIER]['last_activity'] ?? 0;
+            if (time() - $lastActivity > 1800) {
+                // Timeout - clear session
+                $_SESSION[PLATFORM_IDENTIFIER]['login_verified'] = '';
+                $_SESSION[PLATFORM_IDENTIFIER]['login_user_identifier'] = '';
+                unset($_SESSION[PLATFORM_IDENTIFIER]['last_activity']);
+            } else {
+                // Update last activity
+                $_SESSION[PLATFORM_IDENTIFIER]['last_activity'] = time();
+            }
+        }
+
+        // 3. Set security headers
         $this->setSecurityHeaders();
 
         // 3. Set content-type header
@@ -292,6 +306,10 @@ class CBCore
             return $this->formatError("Script not found", 404);
         }
 
+        // Default auth mode: controller/ = secure, everything else = public
+        $GLOBALS['_cbRouteAuth'] = str_contains($route['script'], '/controller/') ? 'secure' : 'public';
+        $GLOBALS['_cbRouteGroup'] = '';
+
         // Execute script with output buffering
         ob_start();
 
@@ -301,6 +319,24 @@ class CBCore
         }
 
         include $route['script'];
+
+        // Auth check AFTER include (controller may have called CBAuth())
+        if ($GLOBALS['_cbRouteAuth'] === 'secure') {
+            $isAuthenticated = isset($_SESSION[PLATFORM_IDENTIFIER]['login_verified'])
+                && $_SESSION[PLATFORM_IDENTIFIER]['login_verified'] === '1'
+                && !empty($_SESSION[PLATFORM_IDENTIFIER]['login_user_identifier']);
+
+            if (!$isAuthenticated) {
+                ob_get_clean();
+                return $this->formatError('Authentication required', 401);
+            }
+
+            if ($GLOBALS['_cbRouteGroup'] !== '' && !$this->checkUserPermission($GLOBALS['_cbRouteGroup'])) {
+                ob_get_clean();
+                return $this->formatError('Permission denied', 403);
+            }
+        }
+
         $content = ob_get_clean();
 
         // Load module translations
@@ -390,6 +426,15 @@ class CBCore
 
         $userGroups = $this->user->get('addressgroups');
         return checkIntersection($userGroups, $requiredGroups);
+    }
+
+    /**
+     * Check if current user has required permission group (for CBAuth)
+     */
+    private function checkUserPermission(string $group): bool
+    {
+        $userGroups = $this->user?->getAttribute('addressgroups') ?? '';
+        return checkIntersection($userGroups, $group);
     }
 
     /**
@@ -630,6 +675,31 @@ class CBCore
         $template = preg_replace('/###.*###/Us','',$template);
         */
         $template = parseTemplate($template, [], "", true);
+
+        // CSRF: inject meta tag into <head> and hidden field into every <form>
+        if (str_contains($template, '<head>') || str_contains($template, '<head ')) {
+            $csrfToken = \Capps\Modules\Core\Classes\CBController::getCSRFToken();
+            $metaTag = '<meta name="csrf-token" content="' . htmlspecialchars($csrfToken, ENT_QUOTES) . '">';
+            $template = preg_replace('/(<head\b[^>]*>)/i', '$1' . "\n" . $metaTag, $template);
+            $csrfField = '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($csrfToken, ENT_QUOTES) . '">';
+            $template = preg_replace('/(<form\b[^>]*>)/i', '$1' . "\n" . $csrfField, $template);
+        }
+
+        // Auto-logout: inject JS timer before </body> (only for logged-in users)
+        if (str_contains($template, '</body>') && !empty($_SESSION[PLATFORM_IDENTIFIER]['login_verified'] ?? '')) {
+            $timeoutMs = 1800 * 1000; // 30 minutes in ms
+            $logoutUrl = BASEURL . 'controller/address/doLogout/';
+            $autoLogoutJs = "<script>
+(function() {
+    var timeout = {$timeoutMs};
+    var timer;
+    function resetTimer() { clearTimeout(timer); timer = setTimeout(function() { window.location.href = '{$logoutUrl}'; }, timeout); }
+    ['click','keydown','mousemove','touchstart'].forEach(function(e) { document.addEventListener(e, resetTimer); });
+    resetTimer();
+})();
+</script>";
+            $template = str_replace('</body>', $autoLogoutJs . '</body>', $template);
+        }
 
         return $template;
     }

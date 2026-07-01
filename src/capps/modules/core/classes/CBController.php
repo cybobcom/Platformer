@@ -193,10 +193,10 @@ class CBController
             return;
         }
 
-        $token = $_REQUEST['csrf_token'] ?? '';
+        $token = $_REQUEST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         $sessionToken = $_SESSION['csrf_token'] ?? '';
 
-        if ($token === '' || $token !== $sessionToken) {
+        if ($token === '' || $sessionToken === '' || !hash_equals($sessionToken, $token)) {
             $this->errorResponse('Invalid CSRF token', 403);
         }
     }

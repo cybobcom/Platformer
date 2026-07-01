@@ -7,6 +7,14 @@ function CBLog(text) {
     alert( JSON.stringify(text) );
 }
 
+// jQuery
+$.ajaxSetup({
+    headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content }
+});
+
+// Vue/axios
+axios.defaults.headers.common['X-CSRF-Token'] = document.querySelector('meta[name="csrf-token"]')?.content;
+
 /**
  * CB Framework - JavaScript Edition
  * Konsistent mit PHP, Swift, Kotlin Versionen
