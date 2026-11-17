@@ -35,13 +35,13 @@ class CBAutoloader
             $prefix = substr($className, 0, $pos + 1);
             $relativeClass = substr($className, $pos + 1);
             
-            // Versuche exakte Übereinstimmung
+            // Try exact match
             $mappedFile = $this->loadMappedFile($prefix, $relativeClass);
             if ($mappedFile) {
                 return $mappedFile;
             }
             
-            // NEUE FUNKTION: Versuche case-insensitive
+            // Try case-insensitive
             $mappedFile = $this->loadMappedFileCaseInsensitive($prefix, $relativeClass);
             if ($mappedFile) {
                 return $mappedFile;
@@ -71,11 +71,11 @@ class CBAutoloader
     }
     
     /**
-     * NEUE FUNKTION: Case-insensitive Suche
+     * Case-insensitive lookup
      */
     protected function loadMappedFileCaseInsensitive($prefix, $relativeClass)
     {
-        // Versuche verschiedene Case-Variationen des Namespace
+        // Try different case variations of the namespace
         $variations = [
             strtolower($prefix),
             strtoupper($prefix),
@@ -108,7 +108,7 @@ class CBAutoloader
     }
     
     /**
-     * DEBUG-Funktion: Zeige registrierte Namespaces
+     * Debug: list registered namespaces
      */
     public function getRegisteredNamespaces(): array
     {

@@ -1,5 +1,5 @@
 <?php
-// Load-Shedding: keine DB, keine Platformer-Klassen
+// Load shedding: no DB, no Platformer classes
 (static function (): void {
     $c = @include __DIR__ . '/overload.config.php';
     if (!is_array($c) || ($c['mode'] ?? 'off') === 'off') return;
@@ -7,7 +7,7 @@
     $p = (int)($c['shed_percent'] ?? 0);
     if ($c['mode'] === 'auto') {
         $load = function_exists('sys_getloadavg') ? (sys_getloadavg()[0] ?? null) : null;
-        if ($load === null) return; // ohne Load nur manuell
+        if ($load === null) return; // without load average: manual mode only
         $t   = (float)($c['auto']['load_threshold'] ?? 4);
         $max = (int)($c['auto']['max_percent'] ?? 80);
         $p   = $load <= $t ? 0 : (int)min($max, $max * ($load - $t) / $t);
@@ -31,14 +31,14 @@
         exit;
     }
 
-    // Interface, das JSON erwartet -> JSON-Array (wie "invalid interface")
+    // interface expecting JSON -> JSON array (like "invalid interface")
     if ($iface !== '' && in_array($iface, $c['json_interfaces'] ?? [], true)) {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([['id' => '', 'name' => 'busy', 'status' => 'busy', 'retry_after' => $retry]]);
         exit;
     }
 
-    // sonst HTML
+    // otherwise HTML
     $title = $c['message_title'] ?? 'Kurze Pause';
     $msg   = $c['message_html'] ?? 'Aktuell sind sehr viele Nutzer online. Bitte später erneut versuchen.';
     $tpl   = @file_get_contents(($_SERVER['DOCUMENT_ROOT'] ?? '') . '/data/template/views/overload.html');

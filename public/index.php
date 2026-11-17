@@ -25,11 +25,13 @@ $startMemory = memory_get_usage();
 // ENVIRONMENT SETUP
 // ================================================================
 
-$isProduction = getenv('ENVIRONMENT') === 'production';
+// Debug only on local installations (MAMP), everything else = production
+$isProduction = !in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1'], true);
 
 if ($isProduction) {
     ini_set('display_errors', '0');
-    error_reporting(0);
+    ini_set('log_errors', '1'); // errors go to the server's PHP error log, not to visitors
+    error_reporting(E_ALL & ~E_DEPRECATED);
 } else {
     ini_set('display_errors', '1');
     error_reporting(E_ALL);
@@ -325,25 +327,10 @@ if (defined('ENABLE_PROFILING') && ENABLE_PROFILING) {
     register_shutdown_function(function() use ($startTime, $startMemory) {
         $executionTime = round((microtime(true) - $startTime) * 1000, 2);
         $memoryUsed = round((memory_get_usage() - $startMemory) / 1024 / 1024, 2);
-        $peakMemory = round(memory_get_peak_usage() / 1024 / 1024, 2);
 
-        if (defined('DEBUG_MODE') && DEBUG_MODE) {
-            error_log("PERFORMANCE: {$executionTime}ms, Memory: {$memoryUsed}MB, Peak: {$peakMemory}MB");
-
-            if (!headers_sent()) {
-                header("X-Execution-Time: {$executionTime}ms");
-                header("X-Memory-Usage: {$memoryUsed}MB");
-            }
-        }
-
-        // Log slow requests
-        if ($executionTime > 1000) {
-            error_log("SLOW REQUEST: {$executionTime}ms - " . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
-        }
-
-        // Log high memory
-        if ($peakMemory > 64) {
-            error_log("HIGH MEMORY: {$peakMemory}MB - " . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
+        if (defined('DEBUG_MODE') && DEBUG_MODE && !headers_sent()) {
+            header("X-Execution-Time: {$executionTime}ms");
+            header("X-Memory-Usage: {$memoryUsed}MB");
         }
     });
 }

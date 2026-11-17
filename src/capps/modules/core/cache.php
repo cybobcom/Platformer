@@ -1,5 +1,5 @@
 <?php
-// Seiten-Cache: nur GET, nicht eingeloggt, feste TTL, keine Invalidierung
+// Page cache: GET only, not logged in, fixed TTL, no invalidation
 (static function (): void {
     $c = CONFIGURATION['cache'] ?? [];
     if (empty($c['enabled'])) return;
@@ -21,7 +21,7 @@
     $dbgToken = (string)(CONFIGURATION['debug']['token'] ?? '');
     $debug    = $dbgToken !== '' && hash_equals($dbgToken, (string)($_GET['cbdebug'] ?? ''));
     $keyUri   = $uri;
-    if ($debug) { // Parameter aus dem Cache-Key entfernen
+    if ($debug) { // remove parameter from cache key
         $q = $_GET; unset($q['cbdebug']);
         $keyUri = $path . ($q ? '?' . http_build_query($q) : '');
     }
@@ -30,7 +30,7 @@
     $file = $dir . md5(($_SERVER['HTTP_HOST'] ?? '') . $keyUri) . '.cache';
     $ttl  = (int)($c['ttl'] ?? 60);
 
-    // Treffer
+    // Hit
     if (is_file($file) && time() - filemtime($file) < $ttl) {
         $d = @unserialize((string)@file_get_contents($file), ['allowed_classes' => false]);
         if (is_array($d)) {
@@ -55,7 +55,7 @@
 
         $save = $buf;
         if ($debug) {
-            if (in_array(ltrim($buf)[0] ?? '', ['{', '['], true)) return $buf; // JSON mit _debug nicht cachen
+            if (in_array(ltrim($buf)[0] ?? '', ['{', '['], true)) return $buf; // do not cache JSON with _debug
             $save = preg_replace('/<!--CBDEBUG-->.*<!--\/CBDEBUG-->/s', '', $buf);
         }
 

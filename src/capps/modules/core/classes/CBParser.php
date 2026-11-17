@@ -14,7 +14,7 @@ class CBParser {
 
         $strTemplate = $this->parseCBNavigationTag($strTemplate,$objCS,$objC);
         $strTemplate = $this->parseCBCheckTag($strTemplate,$objCS,$objC);
-        $strTemplate = $this->parseCBLocalizeTag($strTemplate); // NEU
+        $strTemplate = $this->parseCBLocalizeTag($strTemplate);
         $strTemplate = $this->parseLink($strTemplate,NULL,NULL,$objCS,$objC);
 
         return $strTemplate;
@@ -495,7 +495,7 @@ class CBParser {
                                             if ( $arrAttributes['modify_length_tail'] != "" ) $strTail = $arrAttributes['modify_length_tail'];
                                             if ( $arrAttributes['level'.$level.'_modify_length_tail'] != "") $strTail = $arrAttributes['level'.$level.'_modify_length_tail'];
 
-                                            // vika new 2010-01-06, Auf abgeschnittenen HTML-Zeichen pr�fen und diese l�schen
+                                            // vika new 2010-01-06: remove cut-off HTML entities
                                             $strNewAttribute = substr($valueTreffer,0,$intLength);
                                             // Suche &-Zeichen
                                             $strHtmlTeil = strrchr($strNewAttribute,'&');
@@ -523,7 +523,7 @@ class CBParser {
                                         if ( $arrAttributes['modify_length_tail'] != "" ) $strTail = $arrAttributes['modify_length_tail'];
                                         if ( $arrAttributes['level'.$level.'_modify_length_tail'] != "") $strTail = $arrAttributes['level'.$level.'_modify_length_tail'];
 
-                                        // vika new 2010-01-06, Auf abgeschnittenen HTML-Zeichen pr�fen und diese l�schen
+                                        // vika new 2010-01-06: remove cut-off HTML entities
                                         $strNewAttribute = substr($vG,0,$intLength);
                                         // Suche &-Zeichen
                                         $strHtmlTeil = strrchr($strNewAttribute,'&');

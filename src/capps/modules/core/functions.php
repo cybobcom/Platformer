@@ -169,12 +169,6 @@ function CBinitObjectSimple(string $class, mixed $value = null): object
         CBinitCache::set($cacheKey, clone $instance);
     }
 
-    // Logging
-    if ($config['enable_logging']) {
-        $actualClass = get_class($instance);
-        error_log("CBinitObjectSimple: {$class} → {$actualClass} from {$loadedFrom}");
-    }
-
     return $instance;
 }
 
@@ -201,11 +195,10 @@ function tryLoadFromVendor(string $vendorName, array $vendorConfig, string $modu
 
 function CBinitObject(string $class, mixed $value = null): object
 {
+    // Intended fallback (exception to the no-try/catch rule): unknown class → plain CBObject
     try {
         return CBinitObjectSimple($class, $value);
     } catch (Exception $e) {
-        error_log("CBinitObject fallback: {$class} → " . $e->getMessage());
-
         $fallbackClass = CONFIGURATION['cbinit']['fallback_class'];
         return $value !== null ? new $fallbackClass($value) : new $fallbackClass();
     }
@@ -330,12 +323,6 @@ function CBinitController(string $moduleName, mixed $id = null): object
     // Cache (only if no ID, since ID makes it stateful)
     if ($config['enable_cache'] && $id === null) {
         CBinitCache::set($cacheKey, clone $instance);
-    }
-
-    // Logging
-    if ($config['enable_logging']) {
-        $actualClass = get_class($instance);
-        error_log("CBinitController: {$moduleName} → {$actualClass} from {$loadedFrom}");
     }
 
     return $instance;
@@ -649,11 +636,8 @@ function parseTemplate($_strTemplate, $_arrEntry, $_prefix = "", $_clean = true,
 
 function CBLog($data, string $message = ''): void
 {
-    // if (defined('DEBUG_MODE') && DEBUG_MODE) {
+    // Always outputs (also on servers): developer tool for instances and own modules
     echo "$message: <pre>"; print_r($data); echo "</pre>";
-    $logMessage = $message ? $message . ': ' : '';
-    error_log($logMessage . print_r($data, true));
-    //}
 }
 
 /**
@@ -879,7 +863,7 @@ function cb_makeSelectForm ($formName,$arrayValues,$arrayText="",$select=NULL,$s
                 }
             }else{
                 //echo "select=".$select.'  mfile='.$mfile.'--<br>';
-                // vika new 2009_11_05 , wenn ein Komma mit ASCII-Zeichen vorkommt, wegen easy-Admin
+                // vika new 2009_11_05: comma as ASCII entity (easy-Admin)
                 if (strstr($mfile,'&#44;')) $mfile = str_replace('&#44;',',',$mfile);
                 // vika ende 2009_11_05
                 if($select == $mfile && !$selected) {
@@ -950,10 +934,10 @@ if ( !function_exists("generatePreview") ) {
 
             // 2026-02-09 Bob: check info not extension
 
-            /* echtes Bild prüfen */
+            /* check for a real image */
             $imgInfo = @getimagesize($file);
             if ($imgInfo === false) {
-                // kein gültiges Bild → abbrechen oder Fehler
+                // no valid image: stop
                 return;
             }
 
@@ -1023,6 +1007,8 @@ if ( !function_exists("generatePreview") ) {
 
             } else {
                 //echo "DEV2";exit;
+                // exec/shell_exec disabled on some webspaces: no PDF preview (empty image instead of a fatal error)
+                if (function_exists('exec') && function_exists('shell_exec')) {
 
                 $path = "";
                 $boolInstall = true;
@@ -1063,7 +1049,7 @@ if ( !function_exists("generatePreview") ) {
                         list ($path,$dummy) = explode(' ',trim($strConvertPath));
                     }
 
-                    // Path to New Image Magick, wird nicht benötigt, da TIFF Bearbeitung  nicht funktioniert
+                    // Path to new ImageMagick: not needed, TIFF processing does not work
                     //$path = '/usr/local/imagemagick/bin/convert';
                     //echo $path;
 
@@ -1097,7 +1083,7 @@ if ( !function_exists("generatePreview") ) {
 
                 if ( $path != "" ) {
 
-                    // Path to New Image Magick, wird nicht benötigt, da TIFF Bearbeitung  nicht funktioniert
+                    // Path to new ImageMagick: not needed, TIFF processing does not work
                     //$path = '/usr/local/imagemagick/bin/convert';
                     //echo $path;
 
@@ -1150,6 +1136,7 @@ if ( !function_exists("generatePreview") ) {
                 }
 
 
+                } // exec
             }
 
             //$test = new Imagick();
@@ -1199,18 +1186,20 @@ if ( !function_exists("generatePreview") ) {
             $time = "00:00:01";
             $thumbnail = BASEDIR.'../cache/thumbnail.jpg';
 
+            @unlink($thumbnail); // never reuse the frame of a previous video
+            if (function_exists('shell_exec')) shell_exec('ffmpeg -i '.escapeshellarg($video).' -ss '.$time.' -vframes 1 -filter:v scale="280:-1" -f image2 -y '.escapeshellarg($thumbnail).' 2>&1'); // SECURITY: escapeshellarg
 
-            shell_exec('ffmpeg -i '.escapeshellarg($video).' -ss '.$time.' -vframes 1 -filter:v scale="280:-1" -f image2 -y '.escapeshellarg($thumbnail).' 2>&1'); // SECURITY: escapeshellarg
-
-
-            $data = file_get_contents($thumbnail);
-            file_put_contents($target.$strThumbName, $data);
-
-
-
-            //
-            $image = @imagecreatefromjpeg($target.$strThumbName);
-            $vF = $strThumbName;
+            $image = is_file($thumbnail) ? @imagecreatefromjpeg($thumbnail) : false;
+            if ($image) {
+                copy($thumbnail, $target.$strThumbName);
+                $vF = $strThumbName;
+            } else {
+                // No ffmpeg on this server (or no frame): grey placeholder with play icon
+                $image = imagecreatetruecolor($_width, $_height);
+                imagefill($image, 0, 0, imagecolorallocate($image, 220, 220, 220));
+                $cx = intdiv($_width, 2); $cy = intdiv($_height, 2); $s = intdiv(min($_width, $_height), 4);
+                imagefilledpolygon($image, [$cx - $s, $cy - $s, $cx - $s, $cy + $s, $cx + $s, $cy], imagecolorallocate($image, 255, 255, 255));
+            }
         }
 
 
@@ -1304,6 +1293,7 @@ if ( !function_exists("generatePreview") ) {
         imagesavealpha($im, true);
 
         //imagecopyresampled($im, $image, 0, 0, 0, 0, 100, 100, $arrImageSize[0], $arrImageSize[1]);
+        if (!$image) $image = imagecreatetruecolor($_width, $_height); // unreadable source: empty preview instead of a fatal error
         imagecopyresampled($im, $image, (int) round($offset_x), (int) round($offset_y), 0, 0, (int) round($width), (int) round($height), (int) round($width_orig), (int) round($height_orig));
 
         //echo $im;

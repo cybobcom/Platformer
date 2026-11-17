@@ -103,7 +103,7 @@ class CBController
      * @param array $data Data array to validate (default: $_REQUEST)
      * @return bool
      */
-    public function validateRequired(array $requiredFields, array $data = null): bool
+    public function validateRequired(array $requiredFields, ?array $data = null): bool
     {
         $data = $data ?? $_REQUEST;
 

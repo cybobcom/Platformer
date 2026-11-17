@@ -28,7 +28,7 @@ class CBDebugger
         foreach ($fr as $i => $f) {
             $b = basename($f['file'] ?? '');
             if ($b === '' || in_array($b, ['CBDatabase.php', 'CBObject.php', 'CBDebugger.php', 'functions.php'], true)) continue;
-            if (($fr[$i + 1]['function'] ?? '') === '__construct') continue; // parent::__construct überspringen
+            if (($fr[$i + 1]['function'] ?? '') === '__construct') continue; // skip parent::__construct
             $caller = $b . ':' . ($f['line'] ?? 0);
             break;
         }
@@ -43,8 +43,9 @@ class CBDebugger
         if ($type === 'json') {
             $obj = json_decode($output);
             if (!is_object($obj)) {
-                return $output; // Liste oder kein JSON: weglassen
+                return $output; // list or no JSON: skip
             }
+            if (str_starts_with($data['cache'], 'MISS (stored')) $data['cache'] = 'MISS (not stored: JSON with debug)';
             $obj->_debug = $data;
             return json_encode($obj, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: $output;
         }
@@ -99,7 +100,17 @@ class CBDebugger
             $all[] = ['#' => $i + 1, 'ms' => round($dur * 1000, 2), 'caller' => $caller, 'sql' => substr(trim(preg_replace('/\s+/', ' ', $sql)), 0, 300)];
         }
 
+        // Page cache status (cache.php sets X-Cache-Skip; a HIT never reaches the debugger)
+        $c = CONFIGURATION['cache'] ?? [];
+        $cache = 'MISS (stored, TTL ' . (int)($c['ttl'] ?? 60) . 's)';
+        if (empty($c['enabled'])) $cache = 'off';
+        elseif (http_response_code() !== 200) $cache = 'MISS (not stored: status ' . http_response_code() . ')';
+        foreach (headers_list() as $h) {
+            if (stripos($h, 'X-Cache-Skip:') === 0) $cache = 'skip: ' . trim(substr($h, 13));
+        }
+
         return [
+            'cache' => $cache,
             'total_ms' => round($total * 1000, 2),
             'queries' => count(self::$queries),
             'db_ms' => round($dbTime * 1000, 2),
@@ -134,7 +145,7 @@ class CBDebugger
     {
         return '<!--CBDEBUG--><div style="clear:both;...">'
             . '<div style="clear:both;font:13px monospace;background:#fff;color:#000;padding:10px;margin:10px;border:1px solid #ccc">'
-            . '<b>CBDebugger</b>: ' . $d['total_ms'] . ' ms, ' . $d['queries'] . ' Queries (' . $d['db_ms'] . ' ms), Peak ' . $d['peak_mb'] . ' MB'
+            . '<b>CBDebugger</b>: ' . $d['total_ms'] . ' ms, ' . $d['queries'] . ' Queries (' . $d['db_ms'] . ' ms), Peak ' . $d['peak_mb'] . ' MB, Cache: ' . htmlspecialchars($d['cache'])
             . '<br><br><b>Messpunkte</b>' . self::table($d['points'])
             . '<br><b>Wiederholte Queries</b>' . self::table($d['repeated'])
             . '<br><b>Alle Queries (chronologisch, rot ab ' . $d['slow_ms'] . ' ms)</b>' . self::table($d['all'], $d['slow_ms'])

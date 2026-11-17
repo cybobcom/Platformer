@@ -33,14 +33,14 @@ class CBCore
 
     // Localization - static properties
     private static string $currentLanguage = 'de';
-    private static string $defaultLanguage = 'en';  // NEU: Master-Sprache
+    private static string $defaultLanguage = 'en';  // master language
     private static array $translations = [];
     private static array $loadedModules = [];
 
     public function __construct()
     {
         $this->parser = new CBParser();
-        $this->isProduction = getenv('ENVIRONMENT') === 'production';
+        $this->isProduction = !defined('DEBUG_MODE'); // set in public/index.php (localhost only)
     }
 
     /**
@@ -492,9 +492,6 @@ class CBCore
         }
 
         if (!$isAllowed) {
-            if (defined('DEBUG_MODE') && DEBUG_MODE) {
-                error_log("Template security: Path outside allowed directories: {$fullPath}");
-            }
             return "";
         }
 
@@ -575,7 +572,8 @@ class CBCore
         $html = '';
 
         foreach ($contentItems as $item) {
-            $contentObj = new CBObject($item['content_id'], 'capps_content', 'content_id');
+            $contentObj = new CBObject(null, 'capps_content', 'content_id');
+            $contentObj->load($item); // row already loaded by findAll(): no second query
 
             // Check permissions
             if (!$this->checkAccess($contentObj)) {

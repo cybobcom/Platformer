@@ -97,7 +97,6 @@ $arrConf['cbinit'] = [
     ],
     'validate_input' => true,
     'enable_cache' => true,
-    'enable_logging' => true,
     'fallback_enabled' => true,
     'fallback_class' => 'capps\\modules\\database\\classes\\CBObject',
     'strict_mode' => false
