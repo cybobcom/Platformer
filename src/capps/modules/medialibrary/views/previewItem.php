@@ -2,7 +2,10 @@
 
 // 	echo "<pre>"; print_r($_REQUEST); echo "</pre>";
 
-if ( $_REQUEST["file"] != "" ) {
+// SECURITY: no script URLs (javascript:, data:, vbscript:) in iframe/image src
+if ( preg_match('#^\s*(javascript|data|vbscript):#i', (string)($_REQUEST["file"] ?? '')) ) exit;
+
+if ( ($_REQUEST["file"] ?? "") != "" ) {
 
     // repair
     $_REQUEST["file"] = str_replace(":/","://",$_REQUEST["file"]);
@@ -20,7 +23,7 @@ if ( $_REQUEST["file"] != "" ) {
         $strImage = str_replace(BASEDIR, BASEURL, $strImage);
 
         //
-        echo '<iframe id="iframe" style="border:0px solid #666CCC; " title="item" src="'.$strImage.'" frameborder="10" scrolling="auto" height="100%" width="100%" onDEVload="this.height=this.contentWindow.document.body.scrollHeight;"></iframe>';
+        echo '<iframe id="iframe" style="border:0px solid #666CCC; " title="item" src="'.htmlspecialchars($strImage, ENT_QUOTES).'" frameborder="10" scrolling="auto" height="100%" width="100%" onDEVload="this.height=this.contentWindow.document.body.scrollHeight;"></iframe>';
 
     } else {
 
@@ -54,7 +57,7 @@ if ( $_REQUEST["file"] != "" ) {
             <div class="col-11">
                 <div style="width: 100%; height: 100%; overflow: auto">
                     <svg id="svg_preview" width="1024" height="1024" viewBox="0 0 1024 1024" style=" height:auto; width:100%; background-color: transparent;" class="">
-                        <image href="<?php echo $strImage; ?>" width="1024"/>
+                        <image href="<?php echo htmlspecialchars($strImage, ENT_QUOTES); ?>" width="1024"/>
                     </svg>
                 </div>
             </div>

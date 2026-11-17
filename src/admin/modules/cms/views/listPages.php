@@ -8,15 +8,17 @@ $arrCondition = array();
 $arrCondition["language_id"] = $_SESSION[PLATFORM_IDENTIFIER]["plattform_language_id"]??"1";
 
 $selection = "";
+$arrSelectionParams = [];
 // search
 $boolSearch = false;
 if (isset($_REQUEST["search"]) && $_REQUEST["search"] != "" && $_REQUEST["search"] != "undefined") {
     $boolSearch = true;
-    $selection .= " (  name LIKE '%" . $_REQUEST['search'] . "%' ) ";
+    $selection .= " ( name LIKE ? ) "; // SECURITY: value via placeholder
+    $arrSelectionParams[] = '%' . $_REQUEST['search'] . '%';
 }
 
 //
-$arrIDs = $objTmp->getAllEntries("parent_id|sorting","ASC|ASC",$arrCondition,$selection,"structure_id, parent_id, previous_id, sorting, name",NULL);
+$arrIDs = $objTmp->getAllEntries("parent_id|sorting","ASC|ASC",$arrCondition,$selection,"structure_id, parent_id, previous_id, sorting, name",NULL,NULL,$arrSelectionParams);
 //echo "arrIDs<pre>"; print_r($arrIDs); echo "</pre>";exit;
 
 // get sorting

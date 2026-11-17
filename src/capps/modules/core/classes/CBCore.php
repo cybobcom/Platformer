@@ -318,9 +318,10 @@ class CBCore
             return $this->formatError("Script not found", 404);
         }
 
-        // Default auth mode: controller/ = secure, everything else = public
-        $GLOBALS['_cbRouteAuth'] = str_contains($route['script'], '/controller/') ? 'secure' : 'public';
-        $GLOBALS['_cbRouteGroup'] = '';
+        // Default auth mode: views/ and controller/ = group "admin", everything else (api, interface, cron) = public
+        $isProtected = (bool)preg_match('#/(controller|control|views|view)/#', $route['script']);
+        $GLOBALS['_cbRouteAuth'] = $isProtected ? 'secure' : 'public';
+        $GLOBALS['_cbRouteGroup'] = $isProtected ? 'admin' : '';
 
         // A CBAuth('...') line in the script overrides the default (read as text, see CBAuth())
         if (preg_match('/^\s*CBAuth\(\s*[\'"]([^\'"]*)[\'"]\s*\)/m', (string)file_get_contents($route['script']), $m)) {

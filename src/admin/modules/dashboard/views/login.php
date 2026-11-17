@@ -1,4 +1,6 @@
 <?php
+
+CBAuth('public');
 if (isset($_SESSION[PLATFORM_IDENTIFIER]["login_verified"]) && $_SESSION[PLATFORM_IDENTIFIER]["login_verified"] == "1") {
 
 } else {

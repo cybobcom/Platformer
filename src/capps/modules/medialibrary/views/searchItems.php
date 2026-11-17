@@ -36,7 +36,8 @@ if ( isset($_REQUEST['filter_address_id']) && $_REQUEST['filter_address_id'] != 
 $boolSearch = false;
 
 $selection = "";
-$selection .= " path LIKE '".$secure_user_data_path."%' ";
+$selection .= " path LIKE ? "; // SECURITY: values via placeholders
+$arrSelectionParams = [$secure_user_data_path . '%'];
 
 if ( isset($_REQUEST['search']) && $_REQUEST['search'] != "" && $_REQUEST['search'] != "undefined" ) {
     $boolSearch = true;
@@ -56,7 +57,8 @@ if ( isset($_REQUEST['search']) && $_REQUEST['search'] != "" && $_REQUEST['searc
             if ( $selection != "" ) $selection .= " AND ";
 
             //		$selection .= " ( name LIKE '%".$_REQUEST['search']."%' OR description LIKE '%".$_REQUEST['search']."%' OR path LIKE '%".$_REQUEST['search']."%' ) ";
-            $selection .= " ( name LIKE '%".$strSearch."%' OR description LIKE '%".$strSearch."%' OR path LIKE '%".$strSearch."%' ) ";
+            $selection .= " ( name LIKE ? OR description LIKE ? OR path LIKE ? ) ";
+            array_push($arrSelectionParams, ...array_fill(0, 3, '%' . $strSearch . '%'));
 
         }
 
@@ -72,7 +74,7 @@ if ( isset($_REQUEST['search']) && $_REQUEST['search'] != "" && $_REQUEST['searc
 //CBLog( $arrCondition );
 
 //$arrIDs = $objMedia->getAllEntries('name','ASC',$arrCondition,$selection,"medialibrary_uid","100");
-$arrIDs = $objMedia->getAllEntries('date_created','DESC',$arrCondition,$selection,"medialibrary_uid","100");
+$arrIDs = $objMedia->getAllEntries('date_created','DESC',$arrCondition,$selection,"medialibrary_uid",100,NULL,$arrSelectionParams);
 //CBLog( $objMedia->getLastError() );
 //CBLog($arrIDs);
 

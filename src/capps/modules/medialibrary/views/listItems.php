@@ -83,7 +83,8 @@ $arrCondition["deleted"] = "NOT 1";
 
 //
 $selection = "";
-$selection .= " path LIKE '".str_replace(BASEDIR,"/",$media_path)."%' ";	//2023-08-07 bob : change
+$selection .= " path LIKE ? "; // SECURITY: values via placeholders
+$arrSelectionParams = [str_replace(BASEDIR,"/",$media_path) . '%'];	//2023-08-07 bob : change
 
 //
 $boolSearch = false;
@@ -108,7 +109,8 @@ if ( $_REQUEST['search'] != "" && $_REQUEST['search'] != "undefined" ) {
             if ( strlen($strSearch) < 2 ) continue;
 
             if ( $selection != "" ) $selection .= " AND ";
-            $selection .= " ( name LIKE '%".$strSearch."%' OR title LIKE '%".$strSearch."%' OR description LIKE '%".$strSearch."%' OR path LIKE '%".$strSearch."%' ) ";
+            $selection .= " ( name LIKE ? OR title LIKE ? OR description LIKE ? OR path LIKE ? ) ";
+            array_push($arrSelectionParams, ...array_fill(0, 4, '%' . $strSearch . '%'));
 
         }
 
@@ -133,8 +135,8 @@ if ( $boolSearch ) {
     //
 
     // get
-    $arrIDsAll = $objMediaLibrary->getAllEntries('name','ASC',$arrCondition,$selection,"medialibrary_uid");
-    $arrIDs = $objMediaLibrary->getAllEntries('name','ASC',$arrCondition,$selection,"medialibrary_uid","100");
+    $arrIDsAll = $objMediaLibrary->getAllEntries('name','ASC',$arrCondition,$selection,"medialibrary_uid",NULL,NULL,$arrSelectionParams);
+    $arrIDs = $objMediaLibrary->getAllEntries('name','ASC',$arrCondition,$selection,"medialibrary_uid",100,NULL,$arrSelectionParams);
     //debug_
     print_r($arrIDs);
 

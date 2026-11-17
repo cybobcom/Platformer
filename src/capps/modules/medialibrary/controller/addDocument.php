@@ -34,13 +34,13 @@ if ( $_REQUEST['id'] != "" && $_REQUEST['media_uid'] != "" ) {
         var value = $("#data_documents").val();
 
         if ( value != "" ) value += ",";
-        value += "<?php echo $_REQUEST['media_uid']; ?>";
+        value += <?php echo json_encode((string)($_REQUEST['media_uid'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
         //alert(value);
 
         $("#data_documents").val(value);
 
 
-        showDocuments('<?php echo $_REQUEST['id']; ?>');
+        showDocuments(<?php echo json_encode((string)($_REQUEST['id'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>);
 
 
 

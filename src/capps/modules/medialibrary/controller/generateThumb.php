@@ -75,7 +75,7 @@ if ( $_REQUEST['url_to_file'] != "" ) {
     ?>
     <script>
 
-        editItem('<?php echo $_REQUEST['medialibrary_uid']; ?>');
+        editItem(<?php echo json_encode((string)($_REQUEST['medialibrary_uid'] ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>);
 
     </script>
     <?php

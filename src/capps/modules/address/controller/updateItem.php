@@ -1,10 +1,18 @@
 <?php
 
+CBAuth(''); // logged-in users: own record only (admins: all)
+
 //
 $controller = CBinitController('Address');
 
 //
 $controller->validateRequired(['id']);
+
+// SECURITY: non-admins may only edit their own record, without groups/active/type
+$isAdmin = $controller->checkPermission('admin');
+if (!$isAdmin && $_REQUEST['id'] !== ($_SESSION[PLATFORM_IDENTIFIER]['login_user_identifier'] ?? '')) {
+    $controller->errorResponse('Permission denied', 403);
+}
 
 //
 if (!$controller->load($_REQUEST['id'])) {
@@ -13,7 +21,10 @@ if (!$controller->load($_REQUEST['id'])) {
 
 //
 $arrSave = array();
-$arrSave = $_REQUEST['save']??[];
+$arrSave = is_array($_REQUEST['save'] ?? null) ? $_REQUEST['save'] : [];
+if (!$isAdmin) {
+    unset($arrSave['addressgroups'], $arrSave['active'], $arrSave['type'], $_REQUEST['addressgroups'], $_REQUEST['toggle']);
+}
 $arrSave['date_updated'] = date("Y-m-d H:i:s");
 
 //

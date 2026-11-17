@@ -44,15 +44,17 @@ class Category extends \capps\modules\database\classes\CBObject
         //echo "<pre>"; print_r($arrCondition); echo "</pre>";
 
         $selection = "";
+        $arrSelectionParams = [];
 
         if ( $_search != "" && $_search != "undefined" ) {
             if ( $selection != "" ) $selection .= " AND ";
-            $selection .= " ( name LIKE '%".$_search."%' OR description LIKE '%".$_search."%' OR data LIKE '%".$_search."%' OR media LIKE '%".$_search."%' ) ";
+            $selection .= " ( name LIKE ? OR description LIKE ? OR data LIKE ? OR media LIKE ? ) "; // SECURITY: values via placeholders
+            $arrSelectionParams = array_fill(0, 4, '%' . $_search . '%');
         }
 
 
-        $arrIDsAll = $this->getAllEntries('parent_id|sorting|name','ASC|ASC|ASC',$arrCondition,$selection,NULL);
-        $arrIDs = $this->getAllEntries('parent_id|sorting|name','ASC|ASC|ASC',$arrCondition,$selection,"category_id,parent_id,name,sorting,value",NULL); // auch kein Limit, damit man alles berücksichtigen kann
+        $arrIDsAll = $this->getAllEntries('parent_id|sorting|name','ASC|ASC|ASC',$arrCondition,$selection,"",NULL,NULL,$arrSelectionParams);
+        $arrIDs = $this->getAllEntries('parent_id|sorting|name','ASC|ASC|ASC',$arrCondition,$selection,"category_id,parent_id,name,sorting,value",NULL,NULL,$arrSelectionParams); // auch kein Limit, damit man alles berücksichtigen kann
         //debug_print_r($arrIDs);
         //echo "<pre>"; print_r($arrIDs); echo "</pre>";
         //echo "$selection<pre>"; print_r($arrIDs); echo "</pre>";

@@ -15,7 +15,7 @@ global $objPlatformUser;
                 <div class="d-flex justify-content-end align-items-center gap-2">
 
                     <div>
-                        <div>
+                        <div class="position-relative">
                             <span style="position:absolute; right:10px; top:9px; visibility:hidden; color: gray; font-size: 12px;" :style="searchText.length > 2 ? 'visibility:visible;' : ''" class="id_search_reset bi bi-x-lg" @click="searchText = '';listItems()"></span>
                             <input name="search" type="text" class="form-control foDEVrmular4 form-control-sm"  placeholder="Finden" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"  id="filter_search" v-model="searchText" />
                         </div>
@@ -132,7 +132,7 @@ global $objPlatformUser;
                 hello: 'hi',
                 arrItems: [],
 
-                searchText: '<?php echo $objPlatformUser->getAttribute("settings_address_search"); ?>',
+                searchText: <?php echo json_encode((string)($objPlatformUser->getAttribute("settings_address_search")), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>,
 
             }
         },

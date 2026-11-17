@@ -1,5 +1,8 @@
 <?php
 
+// SECURITY: target is a CSS class/id used in JS and HTML: plain names only
+$_REQUEST["target"] = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($_REQUEST["target"] ?? ''));
+
 //echo "<pre>"; print_r($_REQUEST); echo "</pre>";exit;
 
 //
@@ -28,7 +31,8 @@ if ( $_REQUEST['filter_address_id'] != "" && $_REQUEST['filter_address_id'] != "
 //echo "<pre>"; print_r($arrCondition); echo "</pre>";
 
 $selection = "";
-$selection .= " path LIKE '".$media_path."%' ";
+$selection .= " path LIKE ? "; // SECURITY: values via placeholders
+$arrSelectionParams = [$media_path . '%'];
 
 //
 if ( $_REQUEST['search'] != "" && $_REQUEST['search'] != "undefined" ) {
@@ -49,7 +53,8 @@ if ( $_REQUEST['search'] != "" && $_REQUEST['search'] != "undefined" ) {
             if ( strlen($strSearch) < 2 ) continue;
 
             if ( $selection != "" ) $selection .= " AND ";
-            $selection .= " ( name LIKE '%".$strSearch."%' OR title LIKE '%".$strSearch."%' OR description LIKE '%".$strSearch."%' OR path LIKE '%".$strSearch."%' ) ";
+            $selection .= " ( name LIKE ? OR title LIKE ? OR description LIKE ? OR path LIKE ? ) ";
+            array_push($arrSelectionParams, ...array_fill(0, 4, '%' . $strSearch . '%'));
 
         }
     }
@@ -58,8 +63,8 @@ if ( $_REQUEST['search'] != "" && $_REQUEST['search'] != "undefined" ) {
 }
 
 
-$arrIDsAll = $obj->getAllEntries($sorting,$order,$arrCondition,$selection,NULL);
-$arrIDs = $obj->getAllEntries($sorting,$order,$arrCondition,$selection,NULL,"100");
+$arrIDsAll = $obj->getAllEntries($sorting,$order,$arrCondition,$selection,"",NULL,NULL,$arrSelectionParams);
+$arrIDs = $obj->getAllEntries($sorting,$order,$arrCondition,$selection,"",100,NULL,$arrSelectionParams);
 //debug_print_r($arrIDs);exit;
 //echo $selection;exit;
 

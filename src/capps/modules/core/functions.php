@@ -641,8 +641,10 @@ function CBLog($data, string $message = ''): void
 }
 
 /**
- * Set auth mode for current controller/view/api/cron
- * Called from within controller files to override the default.
+ * Set auth mode for current controller/view/api/cron (direct call via CBroute only;
+ * views embedded by the CMS are controlled by the page/element addressgroups)
+ * Default: views/ and controller/ = group "admin", api/interface/cron = public
+ *   CBAuth('public') = everyone, CBAuth('') = logged-in users, CBAuth('xyz') = group "xyz"
  * NOTE: CBCore reads this call as text BEFORE the include: write it as a single
  * line at the start of a line with a literal string, e.g. CBAuth('public');
  *

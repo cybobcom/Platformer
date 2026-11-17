@@ -168,7 +168,7 @@ if ( $_REQUEST['id'] != "" ) {
 
                 BASEURL: window.BASEURL,
                 hello: 'hi',
-                identifier: '<?php echo $_REQUEST["id"]; ?>',
+                identifier: <?php echo json_encode((string)($_REQUEST["id"] ?? ""), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>,
                 dictItem: <?php echo json_encode($objTmp->arrAttributes); ?>,
 
                 searchText: '',

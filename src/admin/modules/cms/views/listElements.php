@@ -12,15 +12,17 @@ if (isset($_REQUEST["structure_id"]) && $_REQUEST["structure_id"] != "" && $_REQ
 }
 
 $selection = "";
+$arrSelectionParams = [];
 // search
 $boolSearch = false;
 if (isset($_REQUEST["search"]) && $_REQUEST["search"] != "" && $_REQUEST["search"] != "undefined") {
     $boolSearch = true;
-    $selection .= " (  name LIKE '%" . $_REQUEST['search'] . "%' ) ";
+    $selection .= " ( name LIKE ? ) "; // SECURITY: value via placeholder
+    $arrSelectionParams[] = '%' . $_REQUEST['search'] . '%';
 }
 
 //
-$arrIDs = $objTmp->getAllEntries("sorting","ASC",$arrCondition,$selection,"content_id, structure_id, previous_id, name",NULL);
+$arrIDs = $objTmp->getAllEntries("sorting","ASC",$arrCondition,$selection,"content_id, structure_id, previous_id, name",NULL,NULL,$arrSelectionParams);
 //echo "arrIDs<pre>"; print_r($arrIDs); echo "</pre>";exit;
 
 // get sorting

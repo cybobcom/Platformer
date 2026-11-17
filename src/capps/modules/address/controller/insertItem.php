@@ -34,7 +34,7 @@ if (is_array($_REQUEST['save'])) {
         $dictResponse["description"] = "ok";
         $dictResponse["id"] = $intID;
     } else {
-        $dictResponse["description"] = $objTmp->getLastError();
+        $dictResponse["description"] = "could not save"; // SECURITY: getLastError() contains query + params (logs only)
     }
 
 }

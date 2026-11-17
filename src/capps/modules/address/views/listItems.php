@@ -17,6 +17,7 @@ $objTmp = CBinitObject("Address");
 
 //
 $selection = "";
+$arrSelectionParams = [];
 
 //
 if ( isset($_REQUEST['search']) && $_REQUEST['search'] != "" && $_REQUEST['search'] != "undefined" ) {
@@ -34,14 +35,17 @@ if ( isset($_REQUEST['search']) && $_REQUEST['search'] != "" && $_REQUEST['searc
         if ( $strSearch == " " ) continue;
         if ( strlen($strSearch) < 2 ) continue;
 
+        // SECURITY: search term only via ? placeholders
+        $arrFields = ['company', 'firstname', 'lastname', 'street', 'postcode', 'city', 'login', 'password', 'data', 'media'];
         if ( $selection != "" ) $selection .= " AND ";
-        $selection .= " ( company LIKE '%".$strSearch."%' OR firstname LIKE '%".$strSearch."%' OR lastname LIKE '%".$strSearch."%' OR street LIKE '%".$strSearch."%' OR postcode LIKE '%".$strSearch."%' OR city LIKE '%".$strSearch."%' OR login LIKE '%".$strSearch."%' OR password LIKE '%".$strSearch."%' OR data LIKE '%".$strSearch."%' OR media LIKE '%".$strSearch."%'  ) ";
+        $selection .= " ( " . implode(' OR ', array_map(fn($f) => "{$f} LIKE ?", $arrFields)) . " ) ";
+        foreach ($arrFields as $f) $arrSelectionParams[] = '%' . $strSearch . '%';
 
     }
 
 }
 
-$arrIDs = $objTmp->getAllEntries("lastname",NULL,NULL,$selection);
+$arrIDs = $objTmp->getAllEntries("lastname",NULL,NULL,$selection,"",NULL,NULL,$arrSelectionParams);
 //echo "arrIDs<pre>"; print_r($arrIDs); echo "</pre>";exit;
 
 if ( isset($_REQUEST['format']) && $_REQUEST['format'] == "json" ) {
