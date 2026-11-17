@@ -16,7 +16,7 @@ class Structure extends CBObject
         ?array $arrDB_Data = null,
         array $config = []
     ) {
-        // Call parent constructor with agent-specific settings
+        // Call parent constructor with structure settings
         parent::__construct(
             $id,                    // ID to load
             'capps_structure',          // Table name
@@ -29,63 +29,20 @@ class Structure extends CBObject
 
 
 
-    function sortStructure(array $items): array
-    {
-        // Schritt 1: Indexiere die Elemente nach ihrer structure_id
-        $itemsById = [];
-        foreach ($items as $item) {
-            $itemsById[$item['structure_id']] = $item;
-        }
-
-        // Schritt 2: Erstelle eine Sortierung nach parent_id und previous_id
-        $sortedItems = [];
-        $unsortedItems = $items;
-
-        while (count($unsortedItems) > 0) {
-            foreach ($unsortedItems as $key => $item) {
-                if ($item['previous_id'] == 0 || isset($sortedItems[$item['previous_id']])) {
-                    $sortedItems[$item['structure_id']] = $item;
-                    unset($unsortedItems[$key]);
-                }
-            }
-        }
-
-        // Schritt 3: Berechne Pfad und Level für jedes Element
-        foreach ($sortedItems as &$item) {
-            $path = [];
-            $current = $item;
-            while ($current['parent_id'] != 0) {
-                $path[] = $current['parent_id'];
-                $current = $itemsById[$current['parent_id']];
-            }
-            $item['path'] = array_reverse($path);  // Pfad umkehren, damit er von der Wurzel bis zum Parent führt
-            $item['level'] = count($item['path']); // Level ist die Länge des Pfads
-        }
-        //CBLog($sortedItems);
-
-        // without structure_id as key
-        //return array_values($sortedItems);
-
-        // with structure_id as key
-        //CBLog($sortedItems);
-        return $sortedItems;
-    }
-
-
     function sortStructureWithSorting(array $items): array {
         $sortedItems = array();
 
-        // Arrays für Struktur und Parent IDs
+        // Arrays for structure and parent ids
         $arrStructureById = array();
         $arrParentIDs = array();
 
-        // Aufbauen von Struktur- und Parent-IDs
+        // Build structure and parent ids
         foreach ($items as $item) {
             $arrStructureById[$item["structure_id"]] = $item;
             $arrParentIDs[$item["parent_id"]][] = $item["structure_id"];
         }
 
-        // Variable für die Struktur
+        // Structure as comma list
         $strStructure = "";
         foreach ($arrParentIDs as $parent_id => $children) {
             $insert = "," . $parent_id . "," . implode(",", $children) . ",";
@@ -97,48 +54,49 @@ class Structure extends CBObject
         }
         $strStructure = trim($strStructure, ",");
 
-        // Struktur in ein Array umwandeln
+        // Structure list to array
         $arrStructure = array();
         if ( $strStructure != "" ) $arrStructure = explode(",", $strStructure);
 
-        // Wir erstellen eine Map für jedes Element mit einem Level und einem Pfad
+        // Map of each item with level and path
         $itemPaths = array();
 
-        // Initialisieren von Pfaden und Leveln
+        // Init paths and levels
         foreach ($arrStructure as $item) {
-            if ($item == "0") continue; // Ignoriere Root-Elemente
+            if ($item == "0") continue; // skip root
 
+            if (!isset($arrStructureById[$item])) continue; // parent not in this language/deleted
             $currentItem = $arrStructureById[$item];
             $parentId = $currentItem['parent_id'];
             $path = array();
             $level = 0;
 
-            // Generiere den Pfad für das aktuelle Element, indem wir die Parent-IDs durchsuchen
-            while ($parentId != 0) {
+            // Build the path of the item by walking up the parent ids
+            while ($parentId != 0 && $level < 50) { // limit: parent cycle in the data must not hang the site
                 if (isset($arrStructureById[$parentId])) {
-                    array_unshift($path, $parentId); // Eltern an den Anfang des Pfades setzen
-                    $parentId = $arrStructureById[$parentId]['parent_id']; // Zum nächsten Elternteil wechseln
+                    array_unshift($path, $parentId); // prepend parent
+                    $parentId = $arrStructureById[$parentId]['parent_id']; // next parent
                     $level++;
                 } else {
-                    break; // Falls keine Eltern-ID vorhanden ist, breche ab
+                    break; // parent missing: stop
                 }
             }
 
-            // Füge das aktuelle Element mit Pfad und Level zu der Map hinzu
+            // Add item with path and level to the map
             $currentItem['path'] = $path;
             $currentItem['level'] = $level;
             $itemPaths[$item] = $currentItem;
         }
         //CBLog($itemPaths);
 
-        // Ergebnisse nach den berechneten Pfaden und Leveln sortieren
-        // Wir durchlaufen jedes Element und fügen es in das Ergebnis ein
+        // Result in structure order
+        
         foreach ($arrStructure as $item) {
-            if ($item == "0") continue; // Ignoriere Root-Elemente
-            $sortedItems[$item] = $itemPaths[$item];
+            if ($item == "0") continue; // skip root
+            if (isset($itemPaths[$item])) $sortedItems[$item] = $itemPaths[$item];
         }
 
-        // Rückgabe der sortierten und erweiterten Daten
+        // Sorted items with path and level
         return $sortedItems;
     }
 

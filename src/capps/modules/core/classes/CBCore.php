@@ -168,8 +168,12 @@ class CBCore
     {
         $cbRoute = $request['CBroute'] ?? '';
 
-        // Empty route = page
+        // Empty route = page (fallback links "index.php?sid=5" from CBParser)
         if (empty($cbRoute)) {
+            $sid = $request['sid'] ?? '';
+            if (is_string($sid) && ctype_digit($sid)) {
+                return ['type' => 'page', 'structure_id' => (int)$sid];
+            }
             return ['type' => 'page', 'structure_id' => $this->getDefaultStructureId()];
         }
 
@@ -295,6 +299,8 @@ class CBCore
             }
         }
 
+        // Unknown route: show the start page, but with status 404 (no duplicate pages for search engines)
+        http_response_code(404);
         return $this->getDefaultStructureId();
     }
 
@@ -385,10 +391,8 @@ class CBCore
     {
         $structureId = $route['structure_id'];
 
-        //
-        if ( !isset($_REQUEST['structure_id']) ) {
-            $_REQUEST['structure_id'] = $structureId;
-        }
+        // Always the resolved page (CBParser navigation uses it, ?structure_id= must not override it)
+        $_REQUEST['structure_id'] = $structureId;
 //        if ( !isset($_REQUEST['content_id']) ) {
 //            $_REQUEST['content_id'] = $key['content_id'];
 //        }
