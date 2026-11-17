@@ -34,58 +34,18 @@ if ( isset($_REQUEST['uid']) && $_REQUEST['uid'] != "" ) {
         */
 
         $objTmp = CBinitObject('MediaLibrary',$_REQUEST['uid']);
-        //echo "<pre>"; print_r($objTmp); echo "</pre>";exit;
 
-        $file = $objTmp->getAttribute('path').$objTmp->getAttribute('name');
-        if ( !stristr($file,BASEDIR) ) $file = BASEDIR.$file;
-        $file = str_replace("//", "/", $file);
-        //echo "<pre>"; print_r($file); echo "</pre>";exit;
-
-        if ( $file != "" && $file != "/" ) {
-            if ( is_file($file) ) {
-                //echo "$file is file";exit;
-
-                // file
-                if ( $file != "" && $file != "/" && stristr($file,BASEDIR."data/media/") ) {
-
-                    // file
-                    //echo "unlink $file <br>";
-                    unlink($file);
-
-                    // thumb
-                    $thumb = $objTmp->getAttribute('path')."_thumb_".$objTmp->getAttribute('name');
-                    if ( !stristr($thumb,BASEDIR) ) $thumb = BASEDIR.$thumb;
-                    $thumb = str_replace("//", "/", $thumb);
-
-                    if ( is_file($thumb) ) {
-                        if ( $thumb != "" && $thumb != "/" && stristr($file,BASEDIR."data/media/") ) {
-                            //echo "unlink $thumb <br>";
-                            unlink($thumb);
-                        }
-                    }
-                    // thumb - second
-                    $thumb = $objTmp->getAttribute('path')."_thumb_".$objTmp->getAttribute('name').".jpg";
-                    if ( !stristr($thumb,BASEDIR) ) $thumb = BASEDIR.$thumb;
-                    $thumb = str_replace("//", "/", $thumb);
-
-                    if ( is_file($thumb) ) {
-                        if ( $thumb != "" && $thumb != "/" && stristr($file,BASEDIR."data/media/") ) {
-                            //echo "unlink $thumb <br>";
-                            unlink($thumb);
-                        }
-                    }
-
-                }
-
-                //echo $_REQUEST['uid'];exit;
-                // db
-                $tmp = $objTmp->deleteEntry($_REQUEST['uid']);
-                //echo "tmp:$tmp";exit;
-
-            } else {
-                //echo "$file is not"; exit;
+        // File and thumbs ("_thumb_<name>" for images, "_thumb_<name>.jpg" for pdf/video), only below data/media/
+        $dir = str_replace("//", "/", BASEDIR . $objTmp->getAttribute('path'));
+        $name = (string)$objTmp->getAttribute('name');
+        if ( $name != "" && stristr($dir, BASEDIR . "data/media/") ) {
+            foreach ([$name, "_thumb_" . $name, "_thumb_" . $name . ".jpg"] as $f) {
+                if ( is_file($dir . $f) ) unlink($dir . $f);
             }
         }
+
+        // DB entry also if the file is already missing (otherwise the list shows it again with an empty thumb)
+        $objTmp->delete($_REQUEST['uid']);
 
 
         ?>

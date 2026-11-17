@@ -1,7 +1,15 @@
 <?php
 
 
-if ( is_array($_REQUEST['save']) ) {
+if ( is_array($_REQUEST['save'] ?? null) ) {
+
+    // SECURITY: only below data/media/ (path comes from the request)
+    $checkDir = realpath((string)($_REQUEST["current_dir"] ?? ''));
+    $mediaDir = realpath(BASEDIR . 'data/media');
+    if ($checkDir === false || $mediaDir === false || ($checkDir !== $mediaDir && !str_starts_with($checkDir, $mediaDir . '/'))) {
+        echo "error"; exit;
+    }
+
 
 
 

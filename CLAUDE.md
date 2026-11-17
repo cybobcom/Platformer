@@ -17,14 +17,15 @@ Platformer is a PHP-based modular CMS/application framework running on MAMP with
 - Type: MySQL
 - Host: localhost
 - Database: platformer
-- User: root / Password: root (as per inc.localconf.php)
+- User: root / Password: root (defaults in `src/inc.localconf.example.php`)
 - Port: Default (3306)
 
 **Running the Application**:
 ```bash
 # Access via MAMP at:
-# http://localhost/Platformer/
-# or configured virtual host
+# http://localhost:8888/Platformer/public/
+# Fresh clone works at once: without src/inc.localconf.php the defaults from
+# src/inc.localconf.example.php are used (own config: copy it, it is git-ignored)
 ```
 
 ## Core Architecture
@@ -32,28 +33,23 @@ Platformer is a PHP-based modular CMS/application framework running on MAMP with
 ### Bootstrap Sequence
 
 1. **Entry Point**: `public/index.php`
-   - Sets up security headers
-   - Configures session management
-   - Establishes base paths
-   - Loads core functions and configuration
+   - Overload protection (`core/overload.php`, optional)
+   - Debug mode only on localhost (`SERVER_NAME` localhost/127.0.0.1), everywhere else production
+   - Session (httponly, samesite, strict mode)
+   - Loads `core/functions.php` and the configuration
+   - `?cbdebug=TOKEN&show_config=1`: config output (token from `CONFIGURATION['debug']['token']`)
+   - Page cache (`core/cache.php`, optional), autoloader, module namespaces
+   - Loads user (`$objPlatformUser`), structure (`$coreArrSortedStructure`), routes (`$coreArrRoute`)
+   - Runs `CBCore`
 
-2. **Configuration**: `src/inc.localconf.php`
-   - Defines all system constants (BASEURL, BASEDIR, etc.)
-   - Database credentials
-   - Module vendor configuration
-   - Platform identifiers
+2. **Configuration**: `src/inc.localconf.php` (git-ignored; fallback `src/inc.localconf.example.php`)
+   - Only sets values: constants (BASEURL, BASEDIR, SOURCEDIR, ...), `CONFIGURATION`, `DATABASE`, `ENCRYPTION_KEY32`
+   - No output, no auth rules, no error_reporting
+   - SECURITY: on servers replace DB credentials, `ENCRYPTION_KEY32` and the debug token
 
-3. **Core Bootstrap**: `src/capps/modules/core/core.php`
-   - Initializes CBAutoloader
-   - Registers module namespaces (both `capps\` and `Capps\`)
-   - Sets up core services via CoreBootstrap
-   - Initializes user and structure objects
-
-4. **Application Execution**: `src/capps/modules/core/classes/CoreBootstrap.php`
-   - Service container initialization
-   - Request routing and security validation
-   - Route execution (script, agent, tool, page types)
-   - Template rendering
+3. **Application**: `src/capps/modules/core/classes/CBCore.php`
+   - Request routing (page or script route), auth check, security headers
+   - Template rendering (CBParser for `<cb:...>` tags, `###placeholders###`)
 
 ### Module Structure
 
@@ -62,8 +58,9 @@ Modules are located in vendor folders under `src/` (`src/capps/modules/` core, `
 ```
 modules/
 ├── core/           # Core system functionality
-│   ├── classes/    # CoreBootstrap, CBAutoloader, Services
-│   ├── core.php    # Core initialization
+│   ├── classes/    # CBCore, CBParser, CBController, CBAutoloader, CBDebugger
+│   ├── cache.php   # Page cache (optional)
+│   ├── overload.php # Load shedding (optional)
 │   └── functions.php # Global functions
 ├── database/       # Database layer
 │   ├── classes/    # CBDatabase.php, CBObject.php (standalone)
@@ -130,18 +127,41 @@ Note: `set()` only changes the object in memory, it does not save.
 
 ### Routing System
 
-Routes are stored in `capps_route` table and cached in `$coreArrRoute`:
-- Format: `structure_id:content_id:address_uid` → `route_string`
-- Special routes: Manual links excluded from auto-routing
-- Structure-based: Uses `$coreArrSortedStructure` for navigation hierarchy
+**Page routes** (CMS pages):
+- Routes are stored in `capps_route` and cached in `$coreArrRoute` (`structure_id:content_id:address_uid` → route)
+- Unknown route: start page with status 404; `index.php?sid=5` (fallback links) shows page 5
+- `$_REQUEST['structure_id']` is always the resolved page
+- Access: addressgroups of page/element (`checkIntersection`)
+
+**Script routes** (`/views/`, `/controller/`, `/api/`, `/interface/`, `/cron/` + module + option):
+- Route parts only `[A-Za-z0-9_-]` (otherwise 404)
+- Searched in all vendors (custom > agent > admin > capps)
+
+### Access Control (CBAuth)
+
+Checked by CBCore BEFORE the script is included (direct call via CBroute only):
+
+| In the script | Allowed for |
+|---|---|
+| nothing (views/, controller/) | group `admin` |
+| nothing (api/, interface/, cron/) | everyone |
+| `CBAuth('public');` | everyone |
+| `CBAuth('');` | logged-in users |
+| `CBAuth('xyz');` | group `xyz` (`capps_addressgroup.entity`) |
+
+- Write it as one line at the start of a line with a literal string (CBCore reads it as text)
+- No permission: HTML = silent redirect to BASEURL, JSON = 401/403
+- Views embedded by the CMS (element templates): `CBAuth` has no effect, page/element addressgroups apply
 
 ### User System
 
 User management via Address module:
-- User object: `$objPlattformUser` (global)
-- Session key: `$_SESSION[PLATFORM_IDENTIFIER]["login_user_identifier"]`
-- Email validation with fallback logic
-- Address groups for permissions
+- User object: `$objPlatformUser` (global)
+- Session: `$_SESSION[PLATFORM_IDENTIFIER]["login_verified"]`, `["login_user_identifier"]`, `["last_activity"]` (30 min timeout)
+- `PLATFORM_IDENTIFIER` = md5 of the lowercased config path (same session for /Platformer/ and /platformer/)
+- Login (`address/controller/doLogin.php`): `hash_equals`, new session id, lockout 5 failed attempts / 15 min per IP + login (files in `cache/login/`)
+- Passwords are encrypted (reversible, `ENCRYPTION_KEY32`): admins must be able to see and set them
+- Address groups for permissions (`addressgroups`, comma-separated entities)
 
 ## Common Development Tasks
 
@@ -249,7 +269,8 @@ Controllers are in `modules/{module}/controller/`:
 ```php
 // src/capps/modules/mymodule/controller/doSomething.php
 <?php
-use Capps\Modules\Database\Classes\CBObject;
+
+CBAuth('');   // optional: logged-in users (default for controllers: group admin)
 
 $obj = CBinitObject("MyModule");
 // Process request
@@ -262,7 +283,8 @@ echo json_encode(['success' => true]);
 Views are in `modules/{module}/views/`:
 - Use master templates from `public/data/template/views/`
 - Template types: `mastertemplate.html`, `mastertemplate_admin.html`, `mastertemplate_console.html`
-- Access globals: `$BASEURL`, `$BASEDIR`, `$objPlattformUser`
+- Access globals: `BASEURL`, `BASEDIR`, `$objPlatformUser`
+- Default access: group admin (see Access Control)
 
 ## Important Patterns
 
@@ -271,10 +293,10 @@ Views are in `modules/{module}/views/`:
 Both lowercase and uppercase namespaces are supported:
 ```php
 // Lowercase (legacy)
-use capps\modules\core\classes\CoreBootstrap;
+use capps\modules\core\classes\CBCore;
 
 // Uppercase (modern, preferred)
-use Capps\Modules\Core\Classes\CoreBootstrap;
+use Capps\Modules\Core\Classes\CBCore;
 ```
 
 ### Global Functions
@@ -428,7 +450,12 @@ public function berechneAlter(DateTime $geburtsdatum): int
 - **XML**: CDATA is split safely (`]]>`), invalid XML keys are skipped
 - **Encryption**: `encrypted_*` / `$arrEncryptedFields` use AES-256-CBC (no MAC); without `ENCRYPTION_KEY32` values are stored as plaintext
 - **Errors**: `getLastError()` contains query and params: logs only, never output to users
-- **Session Security**: Configured with httponly, samesite, and secure flags
+- **Output**: request values in JS via `json_encode($v, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP)` (no own quotes), in HTML via `htmlspecialchars`; CSS classes/ids filtered to `[A-Za-z0-9_-]`. CMS content from the DB (HTML) is output without escaping on purpose
+- **Files**: deliver only via a DB record (never a path from the request), realpath below `data/`
+- **Shell**: `escapeshellarg` for all arguments; ffmpeg/ImageMagick/exec may be missing: fallback, never a fatal error
+- **Session Security**: httponly, samesite, strict mode; new session id on login and logout
+- **CSRF**: token injected into `<head>` and every `<form>`; `CBController::validateCSRF()`; the page cache stores a placeholder
+- **Loops over data** (tree, parents): always limited, broken data must not hang the site
 
 ### Performance Optimization
 
@@ -439,13 +466,13 @@ public function berechneAlter(DateTime $geburtsdatum): int
 
 ## Debugging
 
-**Debug Mode**:
-```php
-// Enable in public/index.php
-define('DEBUG_MODE', true);
-define('ENABLE_PROFILING', true);
-```
+**Debug Mode**: automatic on localhost (`SERVER_NAME` localhost/127.0.0.1): errors displayed. Everywhere else production: errors only in the PHP error log.
 
+**CBDebugger**: `?cbdebug=TOKEN` (token in `CONFIGURATION['debug']['token']`, `''` = off)
+- Timings, queries (repeated/slow), memory, page cache status
+- `&show_config=1`: configuration output (without DB credentials and keys)
+
+**CBLog($data, 'label')**: always outputs (also on servers), developer tool.
 
 **Debug Helpers**:
 ```php
@@ -464,12 +491,6 @@ CBDatabase::$onQuery = function (string $query, float $start) {
     // collect $query and microtime(true) - $start
 };
 ```
-
-**Debug Endpoints** (when DEBUG_MODE enabled):
-- `?debug=phpinfo` - PHP configuration
-- `?debug=session` - Session data
-- `?debug=constants` - Defined constants
-
 
 ## Testing Database Operations
 
@@ -491,8 +512,8 @@ php 03-advanced.php
 ### Database Management
 
 ```bash
-# Access adminer for database management
-http://localhost/Platformer/public/data/adminer-4.8.1-de.php
+# Adminer (group admin)
+http://localhost:8888/Platformer/public/views/tools/adminer/
 ```
 
 
@@ -500,7 +521,7 @@ http://localhost/Platformer/public/data/adminer-4.8.1-de.php
 
 ### Core Files
 - Configuration: `src/inc.localconf.php`
-- Bootstrap: `src/capps/modules/core/core.php`
+- Bootstrap: `public/index.php` → `src/capps/modules/core/classes/CBCore.php`
 - Core Services: `src/capps/modules/core/classes/`
 - Entry Point: `public/index.php`
 

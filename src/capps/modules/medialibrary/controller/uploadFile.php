@@ -1,5 +1,7 @@
 <?php
 
+CBAuth(''); // logged-in users may upload
+
 ini_set('memory_limit','1256M');
 ini_set('memory_limit', -1);
 
@@ -43,6 +45,7 @@ if (isset ($coreArrSystemAttributes['system_media_deny']) && $coreArrSystemAttri
 */
 
 
+// SECURITY: allowed extensions (keep in sync with updateItem.php)
 $arrAdditionsAllow = array('gif','png','jpg','jpeg','pdf','txt','rtf','doc','docx','xls','xlsx','csv','ppt','pptx','pps','mp4','m4v','mpg','mpeg','mp3','m4a');
 /*
 if (isset ($coreArrSystemAttributes['system_media_allow']) && $coreArrSystemAttributes['system_media_allow'] !='') {
@@ -58,15 +61,19 @@ if (isset ($coreArrSystemAttributes['system_media_allow']) && $coreArrSystemAttr
 
 // target
 $target = "";
-if ( $_REQUEST["target"] != "" ) $target = $_REQUEST["target"];
+if ( ($_REQUEST["target"] ?? "") != "" ) $target = $_REQUEST["target"];
 
 if ( $target != "" ) {
     if ( substr($target, -1) != '/' ) $target = $target."/";
 }
 
 
-// dev
-$arrFiles = scandir($target);
+// SECURITY: only below data/media/ (path comes from the request)
+$checkDir = realpath((string)$target);
+$mediaDir = realpath(BASEDIR . 'data/media');
+if ($checkDir === false || $mediaDir === false || ($checkDir !== $mediaDir && !str_starts_with($checkDir, $mediaDir . '/'))) {
+    echo "error"; exit;
+}
 //debug_
 /*
 echo "<pre>"; print_r($_REQUEST); echo "</pre>";
