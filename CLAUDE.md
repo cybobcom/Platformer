@@ -259,6 +259,7 @@ if ($db->hasError()) {
 - Identifiers (table/column/order names): only via `CBDatabase::validNames()`
 - Values: always via `?` placeholders and `$params`; never concatenate user input into SQL
 - Raw SQL options (`select`, `join`, `rawWhere`, `$selection`): trusted code only, values via `rawParams`/`$selectionParams`
+- Never pass options from a request/API body to `findAll()` unfiltered (allow only `order`, `direction`, `limit`, `search`)
 - One connection per request: `CBDatabase::shared()` (CBObject does this)
 - Never change existing UIDs, stored data formats or performance characteristics
 - `findAll()`, `exists()`, `count()` duplicate the WHERE logic on purpose: keep them in sync
@@ -452,9 +453,10 @@ public function berechneAlter(DateTime $geburtsdatum): int
 - **Errors**: `getLastError()` contains query and params: logs only, never output to users
 - **Output**: request values in JS via `json_encode($v, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP)` (no own quotes), in HTML via `htmlspecialchars`; CSS classes/ids filtered to `[A-Za-z0-9_-]`. CMS content from the DB (HTML) is output without escaping on purpose
 - **Files**: deliver only via a DB record (never a path from the request), realpath below `data/`
+- **Uploads/renames**: target folders from the request only via realpath below `data/media/`; extensions only from the whitelist (upload AND rename, keep `uploadFile.php`/`updateItem.php` in sync); `public/data/media/.htaccess` blocks scripts
 - **Shell**: `escapeshellarg` for all arguments; ffmpeg/ImageMagick/exec may be missing: fallback, never a fatal error
 - **Session Security**: httponly, samesite, strict mode; new session id on login and logout
-- **CSRF**: token injected into `<head>` and every `<form>`; `CBController::validateCSRF()`; the page cache stores a placeholder
+- **CSRF**: token injected into `<head>` and every `<form>`; check it on state-changing POSTs (`CBController::validateCSRF()` or `hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])`); the page cache stores a placeholder
 - **Loops over data** (tree, parents): always limited, broken data must not hang the site
 
 ### Performance Optimization
@@ -463,6 +465,24 @@ public function berechneAlter(DateTime $geburtsdatum): int
 - **Schema Cache**: `SHOW COLUMNS` once per table and request
 - **Load from array**: `$obj->load($row)` avoids a second query when the row is already known
 - **Query Profiling**: set `CBDatabase::$onQuery` (e.g. to the debugger); null = no overhead
+
+### Installer (`capps/modules/installer`)
+
+- Admin only; on servers additionally `$arrConf['installer'] = true` in `inc.localconf.php` (localhost always)
+- **Export** (`/views/installer/export/`): writes `<vendor>/modules/<module>/install/`
+  - `schema.sql` (SHOW CREATE TABLE), `schema.php` (target columns), `cms.php` (page tree + content elements)
+- **Import** (`/views/installer/import/`): "Schema ausfuehren" creates missing tables/columns, modifies only checked columns, never deletes; CMS import below a chosen page
+- **Compare**: with another instance via `…/views/installer/status/?token=<debug token of the other instance>`
+- DB errors are shown in the installer on purpose (admin tool, exception to the rule)
+
+### MCP API (`/controller/mcp/api`)
+
+- Remote control via token (`Authorization: Bearer` or `X-API-Token`), token in `capps_address.mcp_token` (plaintext, visible to admins), modules enabled via `<module>/mcp.json`
+- `list` options: only `order`, `direction`, `limit`, `search`
+- Hidden fields (never readable, filterable, sortable): `password`, `mcp_token`, `mcp_token_created`, `verification_uid`, `encrypted*`
+- Fields with `roles` in `mcp.json` are only visible/writable with that role; only fields listed in `mcp.json` are writable
+- Address update: non-admins only their own record
+- `ensureTokenColumn()` per call is intended (module adds its columns itself, plug-and-play)
 
 ## Debugging
 
