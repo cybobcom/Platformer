@@ -2,6 +2,11 @@
 
 CBAuth('admin');
 
+// Shared hosting: set_time_limit() often disabled
+if (!function_exists('set_time_limit')) {
+    function set_time_limit($seconds) {}
+}
+
 // Include Adminer from outside webroot
 // Adjust path to where you store the adminer file
 $adminerFile = SOURCEDIR . 'admin/modules/tools/vendor/adminer/adminer-4.8.1-de.php';

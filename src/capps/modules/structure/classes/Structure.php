@@ -95,9 +95,11 @@ class Structure extends CBObject
                 $strStructure .= $insert;
             }
         }
+        $strStructure = trim($strStructure, ",");
 
         // Struktur in ein Array umwandeln
-        $arrStructure = explode(",", trim($strStructure, ","));
+        $arrStructure = array();
+        if ( $strStructure != "" ) $arrStructure = explode(",", $strStructure);
 
         // Wir erstellen eine Map für jedes Element mit einem Level und einem Pfad
         $itemPaths = array();

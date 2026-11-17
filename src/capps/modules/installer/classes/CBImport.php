@@ -221,22 +221,31 @@ class CBImport
         }
 
         $root = $cms['structure'][$rootLocalId];
-        $template = $root['template'] ?? '';
 
-        if ($template === '') {
-            return ['has_cms' => true, 'installed' => false, 'reason' => 'Root-Seite hat kein Template, kann nicht geprueft werden.'];
+        // Modul-spezifisches Template aus dem ersten Content-Eintrag der Root-Seite holen
+        // (das Structure-Template ist ein generisches Mastertemplate, nicht modul-spezifisch)
+        $rootContentTemplate = null;
+        foreach ($cms['content'] ?? [] as $contentRow) {
+            if ((int)$contentRow['structure_id'] === $rootLocalId && !empty($contentRow['template'])) {
+                $rootContentTemplate = $contentRow['template'];
+                break;
+            }
+        }
+
+        if ($rootContentTemplate === null) {
+            return ['has_cms' => true, 'installed' => false, 'reason' => 'Kein Content-Template fuer Root-Seite gefunden.'];
         }
 
         $existing = $this->db->selectOne(
-            'SELECT structure_id FROM capps_structure WHERE template = ? LIMIT 1',
-            [$template]
+            'SELECT structure_id FROM capps_content WHERE template = ? LIMIT 1',
+            [$rootContentTemplate]
         );
 
         return [
             'has_cms'   => true,
             'installed' => $existing !== null,
             'root_name' => $root['name'] ?? '',
-            'template'  => $template,
+            'template'  => $rootContentTemplate,
         ];
     }
 
@@ -272,6 +281,11 @@ class CBImport
                 return ['ok' => false, 'message' => 'Fehler beim Anlegen der Seite "' . ($row['name'] ?? '') . '": ' . $this->db->getLastError()];
             }
             $idMap[$localId] = $newId;
+
+            // Route fuer die neue Seite generieren
+            $objStructure = CBinitObject('Structure', $newId);
+            $objRoute = CBinitObject('Route');
+            $objRoute->generateStructureRoute($objStructure->identifier);
         }
 
         // Content-Eintraege mit gemappter structure_id einfuegen

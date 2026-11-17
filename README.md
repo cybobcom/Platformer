@@ -41,19 +41,18 @@ A PHP-based modular CMS/application framework with a custom MVC-like architectur
    mysql -u root -p platformer < database/schema.sql
    ```
 
-4. **Configure the application**:
+4. **Configure the application** (optional for local MAMP):
+   Without `src/inc.localconf.php` the defaults from `src/inc.localconf.example.php` are used (root/root, DB `platformer`).
+   For your own setup (and always on servers):
    ```bash
-   # Copy configuration template
-   cp src/capps/inc.localconf.example.php src/capps/inc.localconf.php
-
-   # Edit configuration
-   nano src/capps/inc.localconf.php
+   cp src/inc.localconf.example.php src/inc.localconf.php   # git-ignored
+   nano src/inc.localconf.php
    ```
 
-5. **Update configuration values**:
+5. **Update configuration values** (servers: required):
    - Database credentials (host, user, password, database)
-   - Admin login credentials
-   - Encryption key (32 characters)
+   - Encryption key `ENCRYPTION_KEY32` (32 characters, the default key is public)
+   - Debug token (`''` = off)
    - Mail server settings
    - Debug email
 
@@ -111,7 +110,7 @@ A PHP-based modular CMS/application framework with a custom MVC-like architectur
 
 ### Main Configuration
 
-Edit `src/capps/inc.localconf.php`:
+Edit `src/inc.localconf.php`:
 
 ```php
 // Database
@@ -318,7 +317,7 @@ $columns = $obj->getColumns();
 
 ```bash
 # Test database connection
-php -r "require 'src/capps/inc.localconf.php';
+php -r "require 'src/inc.localconf.php';
         require 'src/capps/modules/database/classes/CBDatabase.php';
         use Capps\Modules\Database\Classes\CBDatabase;
         \$db = new CBDatabase();

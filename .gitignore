@@ -7,11 +7,11 @@
 # ============================================================================
 
 # Main configuration file (contains DB credentials, API keys, etc.)
-src/capps/inc.localconf.php
+src/inc.localconf.php
 
 # Backup configuration files
-src/capps/inc.localconf.php.bak
-src/capps/inc.localconf.*.php
+src/inc.localconf.php.bak
+src/inc.localconf.*.php
 
 # Custom configuration overrides
 src/custom/inc.*.php
@@ -243,7 +243,7 @@ public/data/data_*.xml
 # ============================================================================
 
 # Keep example configurations
-!src/capps/inc.localconf.example.php
+!src/inc.localconf.example.php
 !.env.example
 
 # Keep demo files

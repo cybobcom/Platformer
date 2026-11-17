@@ -83,11 +83,16 @@ class CBCore
         $this->setContentTypeHeader();
 
         // 4. Execute route
+        CBDebugPoint('vor render');
         $output = match($route['type']) {
             'script' => $this->handleScriptRoute($route),
             'page' => $this->handlePageRoute($route),
             default => $this->handlePageRoute($route)
         };
+
+        //
+        CBDebugPoint('nach render');
+        if (defined('CB_DEBUG')) $output = CBDebugger::attach($output, $this->responseType);
 
         // 5. Output (already formatted by response type)
         echo $output;
@@ -180,6 +185,13 @@ class CBCore
         if (in_array($type, ['interface', 'control', 'view', 'views', 'controller', 'api', 'cron'])) {
             $module = $segments[1] ?? 'home';
             $option = $segments[2] ?? '';
+
+            // SECURITY: route parts go into include paths: plain names only (no "..", no "/")
+            foreach ([$module, $option, $segments[3] ?? ''] as $part) {
+                if (!preg_match('/^[A-Za-z0-9_-]*$/', (string)$part)) {
+                    return ['type' => 'script', 'module' => '', 'option' => '', 'script' => null, 'template' => null];
+                }
+            }
             $script = $this->findScriptPath($type, $module, $option, $segments);
 
             return [
@@ -310,6 +322,30 @@ class CBCore
         $GLOBALS['_cbRouteAuth'] = str_contains($route['script'], '/controller/') ? 'secure' : 'public';
         $GLOBALS['_cbRouteGroup'] = '';
 
+        // A CBAuth('...') line in the script overrides the default (read as text, see CBAuth())
+        if (preg_match('/^\s*CBAuth\(\s*[\'"]([^\'"]*)[\'"]\s*\)/m', (string)file_get_contents($route['script']), $m)) {
+            CBAuth($m[1]);
+        }
+
+        // SECURITY: auth check BEFORE include, the script must not run without permission
+        if ($GLOBALS['_cbRouteAuth'] === 'secure') {
+            $isAuthenticated = isset($_SESSION[PLATFORM_IDENTIFIER]['login_verified'])
+                && $_SESSION[PLATFORM_IDENTIFIER]['login_verified'] === '1'
+                && !empty($_SESSION[PLATFORM_IDENTIFIER]['login_user_identifier']);
+
+            $isAllowed = $isAuthenticated
+                && ($GLOBALS['_cbRouteGroup'] === '' || $this->checkUserPermission($GLOBALS['_cbRouteGroup']));
+
+            if (!$isAllowed) {
+                // JSON: status code for JS; HTML: silent redirect like protected pages (no login hint)
+                if ($this->responseType === 'json') {
+                    return $this->formatError($isAuthenticated ? 'Permission denied' : 'Authentication required', $isAuthenticated ? 403 : 401);
+                }
+                header('Location: ' . BASEURL);
+                exit;
+            }
+        }
+
         // Execute script with output buffering
         ob_start();
 
@@ -319,23 +355,6 @@ class CBCore
         }
 
         include $route['script'];
-
-        // Auth check AFTER include (controller may have called CBAuth())
-        if ($GLOBALS['_cbRouteAuth'] === 'secure') {
-            $isAuthenticated = isset($_SESSION[PLATFORM_IDENTIFIER]['login_verified'])
-                && $_SESSION[PLATFORM_IDENTIFIER]['login_verified'] === '1'
-                && !empty($_SESSION[PLATFORM_IDENTIFIER]['login_user_identifier']);
-
-            if (!$isAuthenticated) {
-                ob_get_clean();
-                return $this->formatError('Authentication required', 401);
-            }
-
-            if ($GLOBALS['_cbRouteGroup'] !== '' && !$this->checkUserPermission($GLOBALS['_cbRouteGroup'])) {
-                ob_get_clean();
-                return $this->formatError('Permission denied', 403);
-            }
-        }
 
         $content = ob_get_clean();
 
@@ -693,7 +712,11 @@ class CBCore
 (function() {
     var timeout = {$timeoutMs};
     var timer;
-    function resetTimer() { clearTimeout(timer); timer = setTimeout(function() { window.location.href = '{$logoutUrl}'; }, timeout); }
+    function resetTimer() { clearTimeout(timer); timer = setTimeout(function() {
+        $.ajax({'url': '{$logoutUrl}', 'type': 'POST', 'success': function (result) {
+            window.location = BASEURL + '';
+        }});
+    }, timeout); }
     ['click','keydown','mousemove','touchstart'].forEach(function(e) { document.addEventListener(e, resetTimer); });
     resetTimer();
 })();

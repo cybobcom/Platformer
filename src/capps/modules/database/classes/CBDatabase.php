@@ -6,7 +6,7 @@ namespace Capps\Modules\Database\Classes;
 
 use PDO;
 use PDOException;
-use InvalidArgumentException;
+use PDOStatement;
 use RuntimeException;
 
 /**
@@ -18,14 +18,36 @@ use RuntimeException;
  * - Connection retry logic
  * - UUID generation
  * - Prepared statements
+ * - Optional query hook (see $onQuery), no other dependencies
  */
 class CBDatabase
 {
+    /**
+     * Optional query hook: callable(string $query, float $startTime).
+     * Null = no overhead. Set from outside, e.g. CBDatabase::$onQuery = [CBDebugger::class, 'query'];
+     * @var callable|null
+     */
+    public static $onQuery = null;
+
     private ?PDO $connection = null;
     private string $database;
     private ?string $lastError = null;
     private ?string $lastQuery = null;
     private array $lastParams = [];
+
+    /** @var array<string, self> Shared instances, one per config (see shared()) */
+    private static array $shared = [];
+
+    /**
+     * One shared connection per config (null = default config).
+     * Use instead of "new" when many objects should reuse the same connection.
+     * Note: transactions and lastError are then shared as well.
+     */
+    public static function shared(?array $config = null): self
+    {
+        $key = $config === null ? 'default' : md5(serialize($config));
+        return self::$shared[$key] ??= new self($config);
+    }
 
     public function __construct(?array $config = null)
     {
@@ -34,8 +56,25 @@ class CBDatabase
         $this->database = $config['DB_DATABASE'];
     }
 
+    /** True if the last query failed. */
+    public function hasError(): bool
+    {
+        return $this->lastError !== null;
+    }
+
     /**
-     * Get last error message
+     * Set an error from outside (e.g. CBObject safety checks).
+     */
+    public function setError(string $message): void
+    {
+        $this->lastError = $message;
+        $this->lastQuery = null;
+        $this->lastParams = [];
+    }
+
+    /**
+     * Last error message, including query and params (for logs only).
+     * SECURITY: never output this to users, params may contain sensitive data.
      */
     public function getLastError(): ?string
     {
@@ -73,7 +112,9 @@ class CBDatabase
 
         for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
             try {
+                $t = self::$onQuery ? microtime(true) : 0;
                 $this->connection = new PDO($dsn, $username, $password, $options);
+                if ($t) (self::$onQuery)('PDO CONNECT', $t);
                 return; // Successfully connected
             } catch (PDOException $e) {
                 $lastException = $e;
@@ -96,20 +137,6 @@ class CBDatabase
      */
     private function getDefaultConfig(): array
     {
-        // Try loading from various sources
-        $configPaths = [
-            $_SERVER['DOCUMENT_ROOT'] . '/../src/inc.localconf.php',
-            dirname(__DIR__, 3) . '/inc.localconf.php'
-        ];
-/*
-        foreach ($configPaths as $path) {
-            if (file_exists($path)) {
-                include_once $path;
-                break;
-            }
-        }
-        */
-
         // Use DATABASE constant array with fallback to environment variables
         $dbConfig = defined('DATABASE') && is_array(DATABASE) ? DATABASE : [];
 
@@ -124,149 +151,158 @@ class CBDatabase
     }
 
     /**
-     * Execute SELECT query - returns array
+     * Single place for prepare/execute, error handling and the query hook.
+     * Returns the executed statement, or null on failure (see getLastError()).
      */
-    public function get(string $query, array $params = []): array
+    private function run(string $query, array $params = []): ?PDOStatement
     {
         $this->lastError = null;
-        try {
-            $stmt = $this->connection->prepare($query);
-            $stmt->execute($params);
-            return $stmt->fetchAll();
-        } catch (PDOException $e) {
-            $this->lastError = $e->getMessage();
-            return [];
-        }
-    }
+        $this->lastQuery = $query;
+        $this->lastParams = $params;
+        $t = self::$onQuery ? microtime(true) : 0;
 
-    /**
-     * SELECT query - single result
-     */
-    public function selectOne(string $query, array $params = []): ?array
-    {
-        $this->lastError = null;
         try {
             $stmt = $this->connection->prepare($query);
             $stmt->execute($params);
-            $result = $stmt->fetch();
-            return $result ?: null;
+            return $stmt;
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
             return null;
+        } finally {
+            if ($t) (self::$onQuery)($query, $t);
         }
     }
 
     /**
-     * SHOW queries (for schema information)
+     * Table/column names cannot be bound as parameters, so allow only plain
+     * identifiers (letters, digits, _), optionally "table.column".
+     * Sets lastError and returns false on the first invalid name.
      */
+    public function validNames(mixed ...$names): bool
+    {
+        foreach ($names as $name) {
+            if (!(is_string($name) || is_int($name)) || !preg_match('/^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)?$/', (string)$name)) {
+                $this->setError("Invalid identifier: " . (is_scalar($name) ? $name : gettype($name)));
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * SELECT - returns all rows.
+     * Empty array on "no rows" AND on error: use hasError() if the difference matters.
+     *
+     * SECURITY: never concatenate user input into $query, pass values via $params (?).
+     *
+     * @param string $query SECURITY: SQL with ? placeholders, values only via $params
+     */
+    public function get(string $query, array $params = []): array
+    {
+        $stmt = $this->run($query, $params);
+        return $stmt ? $stmt->fetchAll() : [];
+    }
+
+    /**
+     * SELECT - returns the first row.
+     * Null on "no row" AND on error: use hasError() if the difference matters.
+     *
+     * SECURITY: never concatenate user input into $query, pass values via $params (?).
+     *
+     * @param string $query SECURITY: SQL with ? placeholders, values only via $params
+     */
+    public function selectOne(string $query, array $params = []): ?array
+    {
+        $stmt = $this->run($query, $params);
+        return $stmt ? ($stmt->fetch() ?: null) : null;
+    }
+
+    /** SHOW queries (schema information). */
     public function show(string $query): array
     {
         return $this->get($query);
     }
 
     /**
-     * Execute INSERT - returns lastInsertId or primary key value
+     * INSERT - returns $data[$primaryKey] if given (e.g. UUID), else lastInsertId.
+     * False on error.
      */
     public function insert(string $table, array $data, ?string $primaryKey = null): int|string|false
     {
         if (empty($data)) {
-            $this->lastError = "No data provided for insert";
+            $this->setError("No data provided for insert");
+            return false;
+        }
+        if (!$this->validNames($table, ...array_keys($data))) {
             return false;
         }
 
-        $this->lastError = null;
-        $columns = array_keys($data);
-        $placeholders = array_fill(0, count($data), '?');
+        $placeholders = implode(', ', array_fill(0, count($data), '?'));
+        $query = "INSERT INTO `{$table}` (`" . implode('`, `', array_keys($data)) . "`) VALUES ({$placeholders})";
 
-        $query = "INSERT INTO `{$table}` (`" . implode('`, `', $columns) . "`) VALUES (" . implode(', ', $placeholders) . ")";
-
-        $this->lastQuery = $query;        // ← NEU
-        $this->lastParams = array_values($data);  // ← NEU
-
-        try {
-            $stmt = $this->connection->prepare($query);
-            $stmt->execute(array_values($data));
-
-            // If primary key exists and value in data, return it (UUID)
-            if ($primaryKey && isset($data[$primaryKey])) {
-                return $data[$primaryKey];
-            }
-
-            // Otherwise return lastInsertId for auto_increment (int)
-            return (int)$this->connection->lastInsertId();
-        } catch (PDOException $e) {
-            $this->lastError = $e->getMessage();
+        if (!$this->run($query, array_values($data))) {
             return false;
         }
+
+        if ($primaryKey && isset($data[$primaryKey])) {
+            return $data[$primaryKey];
+        }
+        return (int)$this->connection->lastInsertId();
     }
 
     /**
-     * Execute UPDATE
+     * UPDATE - $where is raw SQL: use ? placeholders and pass values in
+     * $whereParams, never concatenate user input.
      */
     public function update(string $table, array $data, string $where, array $whereParams = []): bool
     {
         if (empty($data)) {
-            $this->lastError = "No data provided for update";
+            $this->setError("No data provided for update");
+            return false;
+        }
+        if (!$this->validNames($table, ...array_keys($data))) {
             return false;
         }
 
-        $this->lastError = null;
         $setParts = array_map(fn($col) => "`{$col}` = ?", array_keys($data));
         $query = "UPDATE `{$table}` SET " . implode(', ', $setParts) . " WHERE {$where}";
 
-        $this->lastQuery = $query;        // ← NEU
-        $params = array_merge(array_values($data), $whereParams);
-        $this->lastParams = $params;      // ← NEU
-
-        try {
-            $stmt = $this->connection->prepare($query);
-            $params = array_merge(array_values($data), $whereParams);
-            return $stmt->execute($params);
-        } catch (PDOException $e) {
-            $this->lastError = $e->getMessage();
-            return false;
-        }
+        return $this->run($query, array_merge(array_values($data), $whereParams)) !== null;
     }
 
-    /**
-     * Execute DELETE
-     */
+    /** DELETE - $where is raw SQL, same rules as update(). */
     public function delete(string $table, string $where, array $whereParams = []): bool
     {
-        $this->lastError = null;
-        $query = "DELETE FROM `{$table}` WHERE {$where}";
-
-        try {
-            $stmt = $this->connection->prepare($query);
-            return $stmt->execute($whereParams);
-        } catch (PDOException $e) {
-            $this->lastError = $e->getMessage();
+        if (!$this->validNames($table)) {
             return false;
         }
+
+        return $this->run("DELETE FROM `{$table}` WHERE {$where}", $whereParams) !== null;
     }
 
     /**
-     * Execute raw query (for legacy compatibility)
+     * Raw query (legacy): rows for SELECT/SHOW, lastInsertId for INSERT,
+     * affected rows otherwise. False on error.
+     *
+     * SECURITY: never concatenate user input into $query, pass values via $params (?).
+     *
+     * @param string $query SECURITY: SQL with ? placeholders, values only via $params
      */
     public function query(string $query, array $params = []): mixed
     {
-        $this->lastError = null;
-        try {
-            $stmt = $this->connection->prepare($query);
-            $stmt->execute($params);
-
-            // Return appropriate result based on query type
-            if (stripos($query, 'SELECT') === 0 || stripos($query, 'SHOW') === 0) {
-                return $stmt->fetchAll();
-            } elseif (stripos($query, 'INSERT') === 0) {
-                return $this->connection->lastInsertId();
-            } else {
-                return $stmt->rowCount();
-            }
-        } catch (PDOException $e) {
-            $this->lastError = $e->getMessage();
+        $stmt = $this->run($query, $params);
+        if (!$stmt) {
             return false;
         }
+
+        // Result columns present = read query (SELECT, SHOW, WITH, DESCRIBE, EXPLAIN)
+        if ($stmt->columnCount() > 0) {
+            return $stmt->fetchAll();
+        }
+        if (stripos(ltrim($query), 'INSERT') === 0) {
+            return $this->connection->lastInsertId();
+        }
+        return $stmt->rowCount();
     }
 
     /**
@@ -278,15 +314,11 @@ class CBDatabase
             $result = $this->connection->query("SELECT UUID() as uuid")->fetch();
             return $result['uuid'];
         } catch (PDOException $e) {
-            // Fallback: PHP UUID v4
-            return sprintf(
-                '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-                mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-                mt_rand(0, 0xffff),
-                mt_rand(0, 0x0fff) | 0x4000,
-                mt_rand(0, 0x3fff) | 0x8000,
-                mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-            );
+            // Fallback: PHP UUID v4 (same format as MySQL UUID())
+            $b = random_bytes(16);
+            $b[6] = chr(ord($b[6]) & 0x0f | 0x40); // version 4
+            $b[8] = chr(ord($b[8]) & 0x3f | 0x80); // variant
+            return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($b), 4));
         }
     }
 
@@ -343,7 +375,7 @@ class CBDatabase
      */
     public function rollback(): bool
     {
-        $this->lastError = null;
+        // lastError is kept on purpose: a rollback usually follows the error that caused it
         try {
             return $this->connection->rollBack();
         } catch (PDOException $e) {

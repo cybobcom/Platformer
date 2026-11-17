@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+CBAuth('public'); // own auth via API token (see below)
+
 /**
  * MCP API Controller
  *

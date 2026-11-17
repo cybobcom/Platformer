@@ -16,7 +16,7 @@ use RuntimeException;
  * - Legacy compatibility
  * - Simple attribute management
  * - Auto-timestamps (date_created, date_updated)
- * - Soft delete support (deleted, deleted_date)
+ * - Soft delete support (deleted_at)
  * - Transaction support
  * - XSS protection for XML fields
  */
@@ -29,6 +29,7 @@ class CBObject
     public ?CBDatabase $objDatabase = null;
     public ?string $strTable = null;
     public ?string $strPrimaryKey = null;
+    protected ?array $dbConfig = null;
 
     // Encryption: list of field names to auto-encrypt/decrypt
     protected array $arrEncryptedFields = [];
@@ -43,8 +44,9 @@ class CBObject
         ?array  $dbConfig = null
     )
     {
-        // Database Connection
-        $this->objDatabase = new CBDatabase($dbConfig);
+        // Database Connection (shared per config, not one connection per object)
+        $this->dbConfig = $dbConfig;
+        $this->objDatabase = CBDatabase::shared($dbConfig);
 
         // Table Setup
         if ($table && $primaryKey) {
@@ -73,7 +75,10 @@ class CBObject
      */
     private function loadTableSchema(): void
     {
-        $columns = $this->objDatabase->show("SHOW COLUMNS FROM `{$this->strTable}`");
+        static $schemaCache = []; // Schema pro Tabelle nur einmal pro Request laden
+        $cacheKey = $this->objDatabase->getDatabase() . '.' . $this->strTable; // same table name in other DBs
+        $columns = $schemaCache[$cacheKey] ??= $this->objDatabase->show("SHOW COLUMNS FROM `{$this->strTable}`");
+        if (!$columns) unset($schemaCache[$cacheKey]); // Fehler/leer nicht cachen
 
         $this->arrDatabaseColumns = [];
         foreach ($columns as $column) {
@@ -86,44 +91,6 @@ class CBObject
         }
     }
 
-    /**
-     * Load object - supports _id (int) and _uid (string/UUID)
-     */
-    public function loadFIRST(mixed $id): bool
-    {
-        if ($id === null) {
-            return false;
-        }
-
-        // IMPORTANT: Clear array for loop compatibility (2025-05-14 bob)
-        $this->arrAttributes = [];
-
-        // Composite Key Support (e.g. "email:test@example.com")
-        if (is_string($id) && str_contains($id, ':')) {
-            [$column, $value] = explode(':', $id, 2);
-            $data = $this->objDatabase->selectOne(
-                "SELECT * FROM `{$this->strTable}` WHERE `{$column}` = ? LIMIT 1",
-                [$value]
-            );
-        } else {
-            // Standard: Primary Key Lookup
-            $data = $this->objDatabase->selectOne(
-                "SELECT * FROM `{$this->strTable}` WHERE `{$this->strPrimaryKey}` = ? LIMIT 1",
-                [$id]
-            );
-        }
-
-        if (!$data) {
-            return false;
-        }
-
-        $this->populateFromData($data);
-
-        // Identifier is ALWAYS the value of the Primary Key from DB
-        $this->identifier = $data[$this->strPrimaryKey];
-
-        return true;
-    }
 
     /**
      * Load object - supports _id, _uid, composite keys, and array
@@ -141,10 +108,8 @@ class CBObject
         if (is_array($id)) {
             $this->populateFromData($id);
 
-            // Set identifier from primary key
-            if (isset($id[$this->strPrimaryKey])) {
-                $this->identifier = $id[$this->strPrimaryKey];
-            }
+            // Identifier from primary key (null if missing: never keep the previous one)
+            $this->identifier = $id[$this->strPrimaryKey] ?? null;
 
             return true;
         }
@@ -152,6 +117,9 @@ class CBObject
         // Composite Key Support (e.g. "email:test@example.com")
         if (is_string($id) && str_contains($id, ':')) {
             [$column, $value] = explode(':', $id, 2);
+            if (!isset($this->arrDatabaseColumns[$column])) {
+                return false; // only real columns allowed (name goes into the SQL string)
+            }
             $data = $this->objDatabase->selectOne(
                 "SELECT * FROM `{$this->strTable}` WHERE `{$column}` = ? LIMIT 1",
                 [$value]
@@ -182,7 +150,8 @@ class CBObject
     private function populateFromData(array $data): void
     {
         foreach ($data as $key => $value) {
-            $this->arrAttributes[$key] = is_string($value) ? stripslashes($value ?? '') : $value;
+            // No stripslashes: values are used as stored (keeps JSON intact)
+            $this->arrAttributes[$key] = $value;
 
             // XML parsing for special fields
             if (in_array($key, ['data', 'media', 'settings', 'encrypted']) && !empty($value)) {
@@ -197,15 +166,15 @@ class CBObject
 
         // Encryption: auto-decrypt fields listed in arrEncryptedFields
         foreach ($this->arrEncryptedFields as $field) {
-            if (!empty($this->arrAttributes[$field]) && $this->isEncrypted($this->arrAttributes[$field])) {
-                $this->arrAttributes[$field] = $this->decryptValue($this->arrAttributes[$field]);
+            if (!empty($this->arrAttributes[$field]) && $this->isEncrypted((string)$this->arrAttributes[$field])) {
+                $this->arrAttributes[$field] = $this->decryptValue((string)$this->arrAttributes[$field]);
             }
         }
 
         // Encryption: auto-decrypt encrypted_ XML attributes
         foreach ($this->arrAttributes as $key => $value) {
             if (str_starts_with($key, 'encrypted_') && !empty($value)) {
-                $this->arrAttributes[$key] = $this->decryptValue($value);
+                $this->arrAttributes[$key] = $this->decryptValue((string)$value);
             }
         }
     }
@@ -222,45 +191,11 @@ class CBObject
 
         for ($i = 0; $i < count($matches[0]); $i++) {
             $tagName = $matches[1][$i];
-            $content = $matches[2][$i];
+            $content = $this->uncdata($matches[2][$i]);
             $this->arrAttributes[$fieldName . '_' . $tagName] = $content;
         }
     }
 
-    /**
-     * Create new record - automatic UUID generation for _uid fields
-     */
-    public function createFIRST(array $data): int|string|false
-    {
-        if (empty($data)) {
-            return false;
-        }
-
-        // Add auto-timestamps (if fields exist)
-        if ($this->hasColumn('date_created') && !isset($data['date_created'])) {
-            $data['date_created'] = date('Y-m-d H:i:s');
-        }
-        if ($this->hasColumn('date_updated') && !isset($data['date_updated'])) {
-            $data['date_updated'] = date('Y-m-d H:i:s');
-        }
-
-        // Process XML fields
-        $processedData = $this->processXmlFieldsForSave($data);
-
-        // Auto-generate UUID if Primary Key ends with _uid
-        if (str_ends_with($this->strPrimaryKey, '_uid') && !isset($processedData[$this->strPrimaryKey])) {
-            $processedData[$this->strPrimaryKey] = $this->objDatabase->generateUuid();
-        }
-
-        $insertId = $this->objDatabase->insert($this->strTable, $processedData, $this->strPrimaryKey);
-
-        if ($insertId !== false) {
-            $this->identifier = $insertId;
-            $this->load($insertId);
-        }
-
-        return $insertId;
-    }
 
     /**
      * Create new record with localization support
@@ -316,8 +251,8 @@ class CBObject
             $data['localize'] = $this->buildLocalizeXML($localizedData);
         }
 
-        // Process XML fields
-        $processedData = $this->processXmlFieldsForSave($data);
+        // Process XML fields (new record: do not merge XML of the currently loaded object)
+        $processedData = $this->processXmlFieldsForSave($data, false);
 
         // NEUE FILTERUNG: Nur gültige DB-Felder durchlassen
         $processedData = $this->filterValidColumns($processedData);
@@ -339,48 +274,18 @@ class CBObject
         return $insertId;
     }
 
+    /**
+     * Legacy wrapper around create().
+     *
+     * @deprecated Use create() instead.
+     * @see create()
+     */
     function saveContentNew($arrContent, $_forceOverwritePK = false, $_flagReturnSql = NULL)
     {
         return $this->create($arrContent);
     }
 
 
-    /**
-     * Update record
-     */
-    public function updateFIRST(array $data, mixed $id = null): bool
-    {
-        $updateId = $id ?? $this->identifier;
-
-        if ($updateId === null) {
-            return false;
-        }
-
-        if (empty($data)) {
-            return false;
-        }
-
-        // Auto-timestamp for update (if field exists)
-        if ($this->hasColumn('date_updated') && !isset($data['date_updated'])) {
-            $data['date_updated'] = date('Y-m-d H:i:s');
-        }
-
-        // Process XML fields
-        $processedData = $this->processXmlFieldsForSave($data);
-
-        $success = $this->objDatabase->update(
-            $this->strTable,
-            $processedData,
-            "`{$this->strPrimaryKey}` = ?",
-            [$updateId]
-        );
-
-        if ($success && $updateId == $this->identifier) {
-            $this->load($updateId);
-        }
-
-        return $success;
-    }
 
     /**
      * Update record with localization support
@@ -405,6 +310,15 @@ class CBObject
         // Auto-timestamp for update (if field exists)
         if ($this->hasColumn('date_updated') && !isset($data['date_updated'])) {
             $data['date_updated'] = date('Y-m-d H:i:s');
+        }
+
+        // XML fields are merged with arrAttributes: for another record use a copy loaded with it
+        // (this object stays unchanged; no extra query without XML fields)
+        if ($updateId != $this->identifier && preg_grep('/^(data|media|settings|encrypted)(_|$)/', array_map('strval', array_keys($data)))) {
+            $target = clone $this;
+            $target->load($updateId);
+            $target->identifier = $updateId; // also if not found: no recursion
+            return $target->update($data, $updateId, $lang);
         }
 
         // LOCALIZATION HANDLING
@@ -459,7 +373,6 @@ class CBObject
             "`{$this->strPrimaryKey}` = ?",
             [$updateId]
         );
-        //CBLog($this->getLastError());
 
         if ($success && $updateId == $this->identifier) {
             $this->load($updateId);
@@ -468,6 +381,12 @@ class CBObject
         return $success;
     }
 
+    /**
+     * Legacy wrapper around update() (note the swapped argument order).
+     *
+     * @deprecated Use update() instead.
+     * @see update()
+     */
     function saveContentUpdate($id, $arrContent, $_flagReturnSql = NULL)
     {
         return $this->update($arrContent, $id);
@@ -498,6 +417,12 @@ class CBObject
         return $success;
     }
 
+    /**
+     * Legacy wrapper around delete().
+     *
+     * @deprecated Use delete() instead.
+     * @see delete()
+     */
     function deleteEntry($id = NULL){
         return $this->delete($id);
     }
@@ -546,7 +471,7 @@ class CBObject
 
     /**
      * Filter data to only valid database columns
-     * Keeps: actual DB columns + XML fields (data, media, settings)
+     * Keeps: actual DB columns (incl. XML fields data, media, settings, encrypted if the table has them)
      * Removes: invalid fields that would cause SQL errors
      */
     private function filterValidColumns(array $data): array
@@ -554,12 +479,6 @@ class CBObject
         $filtered = [];
 
         foreach ($data as $key => $value) {
-            // Allow XML container fields
-            if (in_array($key, ['data', 'media', 'settings', 'encrypted'])) {
-                $filtered[$key] = $value;
-                continue;
-            }
-
             // Allow valid database columns
             if (isset($this->arrDatabaseColumns[$key])) {
                 $filtered[$key] = $value;
@@ -572,59 +491,9 @@ class CBObject
         return $filtered;
     }
 
-    /**
-     * Process XML fields for saving with XSS protection
-     */
-    private function processXmlFieldsForSaveFIRST(array $data): array
-    {
-        // Process direct XML field arrays
-        foreach (['data', 'media', 'settings'] as $xmlField) {
-            if (isset($data[$xmlField]) && is_array($data[$xmlField])) {
-                $xml = '';
-                foreach ($data[$xmlField] as $key => $value) {
-                    // XSS protection: Remove dangerous tags
-                    $value = $this->sanitizeXmlValue($value);
-                    $xml .= "<{$key}><![CDATA[{$value}]]></{$key}>\n";
-                }
-                $data[$xmlField] = $xml;
-            }
-        }
 
-        // Collect individual XML fields (data_*, media_*, settings_*)
-        $xmlFields = ['data' => [], 'media' => [], 'settings' => []];
-
-        foreach ($data as $key => $value) {
-            foreach (['data_', 'media_', 'settings_'] as $prefix) {
-                if (str_starts_with($key, $prefix)) {
-                    $xmlType = rtrim($prefix, '_');
-                    $fieldName = str_replace($prefix, '', $key);
-
-                    // Skip media_id for capps_media compatibility
-                    if ($key === 'media_id') continue;
-
-                    // Apply XSS protection
-                    $value = $this->sanitizeXmlValue($value);
-                    $xmlFields[$xmlType][$fieldName] = $value;
-                    unset($data[$key]);
-                }
-            }
-        }
-
-        // Generate XML strings
-        foreach ($xmlFields as $xmlType => $fields) {
-            if (!empty($fields)) {
-                $xml = '';
-                foreach ($fields as $key => $value) {
-                    $xml .= "<{$key}><![CDATA[{$value}]]></{$key}>\n";
-                }
-                $data[$xmlType] = $xml;
-            }
-        }
-
-        return $data;
-    }
-
-    private function processXmlFieldsForSave(array $data): array
+    /** $merge = false: build XML from $data only (create), true: merge into stored XML fields (update) */
+    private function processXmlFieldsForSave(array $data, bool $merge = true): array
     {
         // Collect all XML fields
         $xmlFields = ['data' => [], 'media' => [], 'settings' => [], 'encrypted' => []];
@@ -642,7 +511,7 @@ class CBObject
             foreach (['data_', 'media_', 'settings_', 'encrypted_'] as $prefix) {
                 if (str_starts_with($key, $prefix)) {
                     $xmlType = rtrim($prefix, '_');
-                    $fieldName = str_replace($prefix, '', $key);
+                    $fieldName = substr($key, strlen($prefix)); // prefix only at the start
                     if ($key === 'media_id') continue;
                     $xmlFields[$xmlType][$fieldName] = $value;
                     unset($data[$key]);
@@ -655,24 +524,34 @@ class CBObject
             if (!empty($fields)) {
                 // 1. Bestehende Felder aus arrAttributes holen
                 $base = [];
-                foreach ($this->arrAttributes as $k => $v) {
+                foreach ($merge ? $this->arrAttributes : [] as $k => $v) {
                     if (str_starts_with($k, $xmlType . '_')) {
+                        // arrAttributes holds decrypted values: encrypt again before storing
+                        if ($xmlType === 'encrypted' && $v !== '' && !$this->isEncrypted($v)) {
+                            $v = $this->encryptValue($v);
+                        }
                         $base[substr($k, strlen($xmlType) + 1)] = $v;
                     }
                 }
                 // 2. Neue Werte drüber mergen
                 foreach ($fields as $k => $v) {
-                    if ($xmlType === 'encrypted') {
-                        // Encrypt values, skip XSS sanitize
-                        $base[$k] = $this->isEncrypted($v) ? $v : $this->encryptValue($v);
+                    if ($v === null) {
+                        unset($base[$k]);   // null = Feld gezielt aus dem XML entfernen
                     } else {
-                        $base[$k] = $this->sanitizeXmlValue($v);
+                        if ($xmlType === 'encrypted') {
+                            // Encrypt values, skip XSS sanitize
+                            $v = (string)$v; // strict_types: ints etc.
+                            $base[$k] = $this->isEncrypted($v) ? $v : $this->encryptValue($v);
+                        } else {
+                            $base[$k] = $this->sanitizeXmlValue($v);
+                        }
                     }
                 }
                 // 3. XML bauen
                 $xml = '';
                 foreach ($base as $key => $value) {
-                    $xml .= "<{$key}><![CDATA[{$value}]]></{$key}>\n";
+                    if (!$this->validXmlKey($key)) continue; // would break the XML structure
+                    $xml .= "<{$key}>" . $this->cdata($value) . "</{$key}>\n";
                 }
                 $data[$xmlType] = $xml;
             }
@@ -680,8 +559,8 @@ class CBObject
 
         // Encryption: auto-encrypt fields listed in arrEncryptedFields
         foreach ($this->arrEncryptedFields as $field) {
-            if (!empty($data[$field]) && !$this->isEncrypted($data[$field])) {
-                $data[$field] = $this->encryptValue($data[$field]);
+            if (!empty($data[$field]) && !$this->isEncrypted((string)$data[$field])) {
+                $data[$field] = $this->encryptValue((string)$data[$field]);
             }
         }
 
@@ -689,7 +568,49 @@ class CBObject
     }
 
     /**
-     * XSS protection for XML values
+     * Legacy safety net: true if a GET/POST/COOKIE value containing ' " or \\ appears
+     * verbatim in $sql, i.e. user input was concatenated into the SQL text.
+     * Heuristic: does not detect transformed input or numeric contexts.
+     */
+    private function embedsRequestInput(string $sql): bool
+    {
+        $found = false;
+        foreach ([$_GET, $_POST, $_COOKIE] as $source) {
+            array_walk_recursive($source, function ($v) use ($sql, &$found) {
+                $v = is_string($v) ? trim($v) : '';
+                if ($v !== '' && strpbrk($v, "'\"\\") !== false && str_contains($sql, $v)) {
+                    $found = true;
+                }
+            });
+        }
+        return $found;
+    }
+
+    /**
+     * Wrap a value in CDATA. A literal "]]>" is split so it cannot close the section
+     * and inject new XML elements (read back by uncdata()).
+     */
+    private function cdata(mixed $value): string
+    {
+        return '<![CDATA[' . str_replace(']]>', ']]]]><![CDATA[>', (string)$value) . ']]>';
+    }
+
+    /** Reverse of the "]]>" split done in cdata(). */
+    private function uncdata(string $value): string
+    {
+        return str_replace(']]]]><![CDATA[>', ']]>', $value);
+    }
+
+    /** XML tag names must not contain < or > (they would break out of the tag). */
+    private function validXmlKey(string|int $key): bool
+    {
+        return $key !== '' && !preg_match('/[<>]/', (string)$key);
+    }
+
+    /**
+     * XSS safety net for HTML in XML values. NOT a replacement for escaping on output.
+     * Removes script/iframe/object/embed/applet, event handler attributes (on*) and
+     * javascript:/vbscript:/data:text/html URLs inside tags. Everything else stays untouched.
      */
     private function sanitizeXmlValue(mixed $value): string
     {
@@ -697,25 +618,56 @@ class CBObject
             return (string)$value;
         }
 
-        // Remove dangerous HTML tags
-        $dangerousTags = [
-            '/<script\b[^>]*>.*?<\/script>/is',
-            '/<iframe\b[^>]*>.*?<\/iframe>/is',
-            '/<object\b[^>]*>.*?<\/object>/is',
-            '/<embed\b[^>]*>/i',
-            '/<applet\b[^>]*>.*?<\/applet>/is',
-            '/on\w+\s*=\s*["\'].*?["\']/i', // Event handlers like onclick, onload
-        ];
+        // Repeat until stable: removing one tag can assemble a new one ("<scr<script></script>ipt>")
+        for ($i = 0; $i < 5; $i++) {
+            $before = $value;
 
-        foreach ($dangerousTags as $pattern) {
-            $value = preg_replace($pattern, '', $value);
+            // Dangerous elements incl. content, then any leftover opening/closing tags
+            $value = preg_replace('#<(script|iframe|object|applet)\b[^>]*>.*?</\1\s*>#is', '', $value) ?? '';
+            $value = preg_replace('#</?(?:script|iframe|object|embed|applet)\b[^>]*>#i', '', $value) ?? '';
+
+            // Inside tags only: drop unsafe attributes (never touches text outside of tags)
+            $value = preg_replace_callback(
+                '/<[a-z][^\s>\/]*(?:"[^"]*"|\'[^\']*\'|[^>"\'])*>/i',
+                fn($tag) => preg_replace_callback(
+                    '/(?<=[\s"\'\/])([a-z][\w:.-]*)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i',
+                    fn($a) => $this->isUnsafeAttribute($a[1], $a[2]) ? '' : $a[0],
+                    $tag[0]
+                ) ?? '',
+                $value
+            ) ?? '';
+
+            if ($value === $before) break;
         }
 
         return $value;
     }
 
+    /** True for on* attributes and URL attributes pointing to javascript:/vbscript:/data:text/html. */
+    private function isUnsafeAttribute(string $name, string $rawValue): bool
+    {
+        $name = strtolower($name);
+        if (str_starts_with($name, 'on')) {
+            return true;
+        }
+        if (!in_array($name, ['href', 'src', 'action', 'formaction', 'xlink:href', 'data', 'poster', 'background'], true)) {
+            return false;
+        }
+        // Browsers ignore whitespace/control chars and decode entities inside the scheme
+        $url = strtolower(preg_replace('/[\x00-\x20]+/', '', html_entity_decode(trim($rawValue, '"\''), ENT_QUOTES | ENT_HTML5)));
+        return (bool)preg_match('#^(javascript|vbscript):|^data:text/html#', $url);
+    }
+
     /**
      * Modern findAll - with data_ field sorting (NO automatic soft-delete filtering!)
+     *
+     * Condition keys, search fields, order fields and the auto-join table name are
+     * validated as plain identifiers; direction is limited to ASC/DESC, limit to numbers.
+     * SECURITY: options 'select', 'join' (with spaces) and 'rawWhere' are raw SQL:
+     * trusted code only. Never embed user input in them; pass values via 'rawParams'
+     * (array for the ? placeholders in 'rawWhere').
+     * NOTE: condition/where logic is duplicated in findAll(), exists() and count() on purpose
+     * (readability). Keep the three in sync, esp. the validNames() check.
      */
     public function findAll(array $conditions = [], array $options = []): array
     {
@@ -723,36 +675,13 @@ class CBObject
         $where = '';
         $params = [];
 
+        if (!$this->objDatabase->validNames(...array_keys($conditions))) {
+            return [];
+        }
+
         // WHERE conditions
         if (!empty($conditions)) {
             $whereClauses = [];
-            /*
-            foreach ($conditions as $key => $value) {
-                if (is_array($value)) {
-                    $placeholders = array_fill(0, count($value), '?');
-                    $whereClauses[] = "`{$key}` IN (" . implode(',', $placeholders) . ")";
-                    $params = array_merge($params, $value);
-                } else {
-                    $whereClauses[] = "`{$key}` = ?";
-                    $params[] = $value;
-                }
-            }
-            */
-            /*
-            foreach ($conditions as $key => $value) {
-                // String "NULL" → IS NULL
-                if ($value === "NULL" || $value === 'NULL') {
-                    $whereClauses[] = "`{$key}` IS NULL";
-                } elseif (is_array($value)) {
-                    $placeholders = array_fill(0, count($value), '?');
-                    $whereClauses[] = "`{$key}` IN (" . implode(',', $placeholders) . ")";
-                    $params = array_merge($params, $value);
-                } else {
-                    $whereClauses[] = "`{$key}` = ?";
-                    $params[] = $value;
-                }
-            }
-            */
             foreach ($conditions as $key => $value) {
                 // String "NULL" → IS NULL
                 if ($value === "NULL" || $value === 'NULL') {
@@ -764,20 +693,10 @@ class CBObject
 
                     // data_ fields → XML LIKE
                     if (str_starts_with($key, 'data_') || str_starts_with($key, 'media_') || str_starts_with($key, 'settings_')) {
-                        $fieldName = substr($key, strpos($key, '_') + 1);
-                        if (str_starts_with($key, 'data_')) {
-                            $fieldName = substr($key, 5);
-                            $xmlField = 'data';
-                        } elseif (str_starts_with($key, 'media_')) {
-                            $fieldName = substr($key, 6);
-                            $xmlField = 'media';
-                        } elseif (str_starts_with($key, 'settings_')) {
-                            $fieldName = substr($key, 9);
-                            $xmlField = 'settings';
-                        }
-                        $xmlField = str_starts_with($key, 'data_') ? 'data' : (str_starts_with($key, 'media_') ? 'media' : 'settings');
+                        $xmlField = strstr($key, '_', true); // data, media or settings
+                        $fieldName = substr($key, strlen($xmlField) + 1);
                         $whereClauses[] = "`{$xmlField}` NOT LIKE ?";
-                        $params[] = "%<{$fieldName}><![CDATA[{$cleanValue}]]></{$fieldName}>%";
+                        $params[] = "%<{$fieldName}>" . $this->cdata($cleanValue) . "</{$fieldName}>%";
                     }
                     // Normal fields
                     else {
@@ -806,8 +725,11 @@ class CBObject
             $searchFields = $options['search']['fields'] ?? [];
 
             if ($searchTerm && !empty($searchFields)) {
+                if (!$this->objDatabase->validNames(...(array)$searchFields)) {
+                    return [];
+                }
                 $searchClauses = [];
-                foreach ($searchFields as $field) {
+                foreach ((array)$searchFields as $field) {
                     $searchClauses[] = "`{$field}` LIKE ?";
                     $params[] = '%' . $searchTerm . '%';
                 }
@@ -816,25 +738,18 @@ class CBObject
             }
         }
 
-        // In findAll() nach dem WHERE-Block:
+        // Raw WHERE (trusted code only): values belong into 'rawParams' (? placeholders)
         if (!empty($options['rawWhere'])) {
             $rawWhere = $options['rawWhere'];
 
-            // Einfache Sicherheitsprüfung
-            $dangerous = ['DROP', 'DELETE', 'TRUNCATE', 'ALTER', 'CREATE', 'GRANT', 'INSERT', 'UPDATE'];
-            $checkString = strtoupper($rawWhere);
-            foreach ($dangerous as $keyword) {
-                if (strpos($checkString, $keyword) !== false) {
-                    throw new RuntimeException("Dangerous SQL keyword detected in rawWhere: {$keyword}");
-                }
-            }
-
-// Zusätzlich: SQL-Kommentare und Semikolon blocken
-            if (strpos($rawWhere, '--') !== false || strpos($rawWhere, ';') !== false) {
-                throw new RuntimeException("SQL comments or semicolons not allowed in rawWhere");
+            // Safety net for the legacy pattern "... LIKE '%" . $_REQUEST['x'] . "%'"
+            if ($this->embedsRequestInput($rawWhere)) {
+                $this->objDatabase->setError("rawWhere blocked: request input is embedded in the SQL text (table {$this->strTable}), use rawParams");
+                return [];
             }
 
             $where .= ($where ? ' AND ' : 'WHERE ') . '(' . $rawWhere . ')';
+            $params = array_merge($params, array_values((array)($options['rawParams'] ?? [])));
         }
 
         // Sorting: Separate normal fields vs data_ fields
@@ -849,8 +764,13 @@ class CBObject
             $directions = is_string($direction) ? explode('|', $direction) : [$direction];
             $normalOrders = [];
 
+            if (!$this->objDatabase->validNames(...$orderFields)) {
+                return [];
+            }
+
             foreach ($orderFields as $idx => $field) {
-                $dir = strtoupper($directions[$idx] ?? 'ASC');
+                $d = $directions[$idx] ?? 'ASC';
+                $dir = is_string($d) && strtoupper($d) === 'DESC' ? 'DESC' : 'ASC';
 
                 if (str_starts_with($field, 'data_') || str_starts_with($field, 'media_') || str_starts_with($field, 'settings_')) {
                     // data_ fields for later sorting
@@ -866,12 +786,20 @@ class CBObject
             }
         }
 
-        $limitClause = isset($options['limit']) ? "LIMIT {$options['limit']}" : '';
+        $limitClause = '';
+        if (isset($options['limit'])) {
+            $limit = (string)$options['limit'];
+            // Allow "n" or "offset,n"; anything else is cast to int
+            $limitClause = 'LIMIT ' . (preg_match('/^\d+(\s*,\s*\d+)?$/', $limit) ? $limit : (int)$limit);
+        }
         $select = $options['select'] ?? '*';
         $join = $options['join'] ?? '';
 
         // Auto-join: nur Tabellenname angegeben (kein Leerzeichen) → Statement automatisch erzeugen
         if ($join !== '' && !str_contains($join, ' ')) {
+            if (!$this->objDatabase->validNames($join)) {
+                return [];
+            }
             $join = "LEFT JOIN {$join} ON {$join}.{$this->strPrimaryKey} = {$this->strTable}.{$this->strPrimaryKey}";
         }
 
@@ -891,27 +819,29 @@ class CBObject
 
     /**
      * Check if record exists
+     * NOTE: keep in sync with findAll() and count() (duplicated on purpose).
      */
     public function exists(array $conditions): bool
     {
         if (empty($conditions)) {
             throw new InvalidArgumentException("No conditions provided for exists check");
         }
+        if (!$this->objDatabase->validNames(...array_keys($conditions))) {
+            return false;
+        }
 
         $where = '';
         $params = [];
 
         $whereClauses = [];
-        /*
-        foreach ($conditions as $key => $value) {
-            $whereClauses[] = "`{$key}` = ?";
-            $params[] = $value;
-        }
-        */
         foreach ($conditions as $key => $value) {
             // String "NULL" → IS NULL
             if ($value === "NULL" || $value === 'NULL') {
                 $whereClauses[] = "`{$key}` IS NULL";
+            } elseif (is_array($value)) {
+                $placeholders = array_fill(0, count($value), '?');
+                $whereClauses[] = "`{$key}` IN (" . implode(',', $placeholders) . ")";
+                $params = array_merge($params, $value);
             } else {
                 $whereClauses[] = "`{$key}` = ?";
                 $params[] = $value;
@@ -927,26 +857,19 @@ class CBObject
 
     /**
      * Count records
+     * NOTE: keep in sync with findAll() and exists() (duplicated on purpose).
      */
     public function count(array $conditions = []): int
     {
         $where = '';
         $params = [];
 
+        if (!$this->objDatabase->validNames(...array_keys($conditions))) {
+            return 0;
+        }
+
         if (!empty($conditions)) {
             $whereClauses = [];
-            /*
-            foreach ($conditions as $key => $value) {
-                if (is_array($value)) {
-                    $placeholders = array_fill(0, count($value), '?');
-                    $whereClauses[] = "`{$key}` IN (" . implode(',', $placeholders) . ")";
-                    $params = array_merge($params, $value);
-                } else {
-                    $whereClauses[] = "`{$key}` = ?";
-                    $params[] = $value;
-                }
-            }
-            */
             foreach ($conditions as $key => $value) {
                 // String "NULL" → IS NULL
                 if ($value === "NULL" || $value === 'NULL') {
@@ -988,7 +911,16 @@ class CBObject
 
         try {
             foreach ($records as $data) {
-                $insertedIds[] = $this->create($data);
+                $id = $this->create($data);
+                $insertedIds[] = $id;
+
+                // create() returns false on DB errors (no exception): stop, all-or-nothing
+                if ($id === false) {
+                    if (!$inTransaction) {
+                        $this->objDatabase->rollback();
+                    }
+                    return $insertedIds;
+                }
             }
 
             if (!$inTransaction) {
@@ -1005,10 +937,17 @@ class CBObject
     }
 
     /**
-     * Legacy getAllEntries - for old code compatibility with data_ sorting
-     * @deprecated Verwende stattdessen newMethod()
+     * Legacy wrapper around findAll(), kept for old code.
+     *
+     * SECURITY: $selection is raw SQL. Never embed user input in it (SQL injection),
+     * pass values via $selectionParams and use ? placeholders instead.
+     *
+     * @deprecated Use findAll() instead (conditions array + 'rawWhere'/'rawParams' options).
+     * @see findAll()
+     *
+     * @param string|null $selection SECURITY: raw SQL, values only via $selectionParams (?)
+     * @param array|null $selectionParams Values for the ? placeholders in $selection
      */
-    //#[Deprecated(reason: "Diese Methode ist veraltet. Verwenden Sie stattdessen neueMethode().", replacement: "findAll()")]
     public function getAllEntries(
         ?string $order = null,
         ?string $direction = null,
@@ -1016,7 +955,8 @@ class CBObject
         ?string $selection = null,
         string $result = "",
         ?int $limit = null,
-        ?string $join = null
+        ?string $join = null,
+        ?array $selectionParams = null // values for ? placeholders in $selection (use instead of embedding values)
     ): array {
         // Delegate to findAll for unified logic
         $options = [];
@@ -1024,6 +964,7 @@ class CBObject
         if ($direction) $options['direction'] = $direction;
         if ( $arrCondition == NULL ) $arrCondition = [];
         if ($selection) $options['rawWhere'] = $selection;
+        if ($selectionParams) $options['rawParams'] = $selectionParams;
         if ($result) $options['select'] = $result;
         if ($limit) $options['limit'] = $limit;
         if ($join) $options['join'] = $join;
@@ -1059,7 +1000,7 @@ class CBObject
             }
 
             // Extract actual field name (without data_/media_/settings_ prefix)
-            $fieldName = str_replace([$xmlFieldType . '_'], '', $strDataField);
+            $fieldName = substr($strDataField, strlen($xmlFieldType) + 1);
 
             // Get XML data
             $xmlData = $item[$xmlFieldType] ?? '';
@@ -1098,56 +1039,12 @@ class CBObject
         return $sortedResult;
     }
 
-    /**
-     * Smart Save - Automatically detects if Insert or Update is needed
-     *
-     * @param array $data Data to save
-     * @param array $conditions Conditions for identification (for update check)
-     * @return int|string|false ID of saved record or false on error
-     *
-     * @example
-     * // Saves or updates user based on email
-     * $id = $user->save(
-     *     ['name' => 'John', 'email' => 'john@test.com'],
-     *     ['email' => 'john@test.com']
-     * );
-     */
-    public function saveFIRST(array $data, array $conditions = []): int|string|false
-    {
-        if (empty($data)) {
-            return false;
-        }
-
-        // Check if record already exists
-        $existing = null;
-
-        if (!empty($conditions)) {
-            // Search by conditions
-            $results = $this->findAll($conditions, ['limit' => 1]);
-            $existing = !empty($results) ? $results[0] : null;
-        } elseif ($this->identifier !== null) {
-            // Use current instance ID
-            $existing = [$this->strPrimaryKey => $this->identifier];
-        }
-
-        // Update or Insert
-        if ($existing) {
-            // UPDATE
-            $id = $existing[$this->strPrimaryKey];
-            $data['date_updated'] = date('Y-m-d H:i:s');
-            $success = $this->update($data, $id);
-            return $success ? $id : false;
-        } else {
-            // INSERT
-            $data = array_merge($data, $conditions); // Take conditions as data
-            $data['date_created'] = date('Y-m-d H:i:s');
-            return $this->create($data);
-        }
-    }
 
     /**
-     * Legacy getAllEntries - for old code compatibility with data_ sorting
-     * @deprecated Verwende stattdessen newMethod()
+     * Legacy wrapper around save(). Note: returns nothing (unlike save()).
+     *
+     * @deprecated Use save() instead.
+     * @see save()
      */
     function saveObject($arrCondition, $arrSave){
         $this->save($arrSave,$arrCondition);
@@ -1167,6 +1064,9 @@ class CBObject
 
         if (!empty($conditions)) {
             $results = $this->findAll($conditions, ['limit' => 1]);
+            if ($this->objDatabase->hasError()) {
+                return false; // read failed: do not insert a duplicate
+            }
             $existing = !empty($results) ? $results[0] : null;
         } elseif ($this->identifier !== null) {
             $existing = [$this->strPrimaryKey => $this->identifier];
@@ -1215,17 +1115,11 @@ class CBObject
         return new $class(
             $results[0][$this->strPrimaryKey],
             $this->strTable,
-            $this->strPrimaryKey
+            $this->strPrimaryKey,
+            $this->dbConfig
         );
     }
 
-    /**
-     * Read attribute (Legacy + Modern)
-     */
-    public function getAttributeFIRST(string $key): mixed
-    {
-        return $this->arrAttributes[$key] ?? "";
-    }
 
     /**
      * Get attribute with localization support + fallback chain
@@ -1297,13 +1191,6 @@ class CBObject
         return $this->getAttribute($key);
     }
 
-    /**
-     * Set attribute
-     */
-    public function setAttributeFIRST(string $key, mixed $value): void
-    {
-        $this->arrAttributes[$key] = $value;
-    }
 
     /**
      * Set attribute with localization support
@@ -1388,6 +1275,14 @@ class CBObject
         ];
     }
 
+    /**
+     * Legacy raw SELECT without parameter support.
+     *
+     * SECURITY: $strQuery is executed as is. Never embed user input; use findAll()
+     * or $this->objDatabase->get($sql, $params) with ? placeholders instead.
+     *
+     * @param string $strQuery SECURITY: raw SQL, no user input
+     */
     function query($strQuery)
     {
         return $this->objDatabase->get($strQuery);
@@ -1413,7 +1308,7 @@ class CBObject
                 // Parse fields within language
                 if (preg_match_all('/<([^>]+)><!\[CDATA\[(.*?)\]\]><\/\1>/s', $langContent, $fields, PREG_SET_ORDER)) {
                     foreach ($fields as $field) {
-                        $result[$langCode][$field[1]] = $field[2];
+                        $result[$langCode][$field[1]] = $this->uncdata($field[2]);
                     }
                 }
             }
@@ -1433,9 +1328,11 @@ class CBObject
 
         $xml = '';
         foreach ($data as $lang => $fields) {
+            if (!preg_match('/^[A-Za-z0-9_-]+$/', (string)$lang)) continue; // language code goes into an attribute
             $xml .= '<lang code="' . $lang . '">';
             foreach ($fields as $key => $value) {
-                $xml .= '<' . $key . '><![CDATA[' . $value . ']]></' . $key . '>';
+                if (!$this->validXmlKey($key)) continue;
+                $xml .= '<' . $key . '>' . $this->cdata($value) . '</' . $key . '>';
             }
             $xml .= '</lang>';
         }
@@ -1443,42 +1340,7 @@ class CBObject
         return $xml;
     }
 
-    private function sanitizeDataTypesFIRST(array $data): array
-    {
-        foreach ($data as $col => $val) {
-            if (!isset($this->arrDatabaseColumns[$col]) || $val !== '') continue;
 
-            $colInfo = $this->arrDatabaseColumns[$col];
-
-            // Leerer String für INT
-            if (preg_match('/int\(/', strtolower($colInfo['type']))) {
-                // NULL erlaubt? → NULL, sonst Default oder 0
-                $data[$col] = $colInfo['null'] ? null : ($colInfo['default'] ?? 0);
-            }
-        }
-        return $data;
-    }
-
-    private function sanitizeDataTypesTRY(array $data): array
-    {
-        foreach ($data as $col => $val) {
-            if (!isset($this->arrDatabaseColumns[$col])) continue;
-
-            $colInfo = $this->arrDatabaseColumns[$col];
-
-            // String "NULL" → NULL
-            if ($val === "NULL" || $val === 'NULL') {
-                $data[$col] = null;
-                continue;
-            }
-
-            // Leerer String → NULL (wenn erlaubt)
-            if ($val === '' && $colInfo['null']) {
-                $data[$col] = null;
-            }
-        }
-        return $data;
-    }
 
     private function sanitizeDataTypes(array $data): array
     {
@@ -1497,7 +1359,7 @@ class CBObject
             if ($val !== '') continue;
 
             // Leerer String für INT → NULL oder Default
-            if (preg_match('/int\(/', strtolower($colInfo['type']))) {
+            if (preg_match('/^(tiny|small|medium|big)?int\b/', strtolower($colInfo['type']))) { // "int(11)" and MySQL 8 "int"
                 $data[$col] = $colInfo['null'] ? null : ($colInfo['default'] ?? 0);
             }
             // Leerer String für andere NULL-erlaubte Felder → NULL
@@ -1513,9 +1375,9 @@ class CBObject
     // ================================================================
 
     /**
-     * Get encryption key from config constant
+     * Get encryption key from config constant (false if not configured)
      */
-    public function getEncryptionKey(): string|false
+    protected function getEncryptionKey(): string|false
     {
         if (defined('ENCRYPTION_KEY32') && ENCRYPTION_KEY32 !== '') {
             return ENCRYPTION_KEY32;
@@ -1544,9 +1406,11 @@ class CBObject
     {
         $key = $this->getEncryptionKey();
         if (!$key) return $encoded;
-        $parts = explode('::', base64_decode($encoded), 2);
-        if (count($parts) !== 2) return $encoded;
-        return openssl_decrypt($parts[1], 'AES-256-CBC', $key, 0, $parts[0]) ?: $encoded;
+        // Format: base64( IV[16 bytes] . '::' . cipher ). Parse by fixed position:
+        // the random binary IV may itself contain ':' or '::'.
+        $raw = base64_decode($encoded);
+        if (strlen($raw) < 19 || substr($raw, 16, 2) !== '::') return $encoded;
+        return openssl_decrypt(substr($raw, 18), 'AES-256-CBC', $key, 0, substr($raw, 0, 16)) ?: $encoded;
     }
 
     /**
@@ -1554,9 +1418,9 @@ class CBObject
      */
     public function isEncrypted(string $value): bool
     {
-        $decoded = base64_decode($value, true);
-        if ($decoded === false) return false;
-        return str_contains($decoded, '::');
+        // Same format check as decryptValue(): IV[16 bytes] . '::' . cipher
+        $raw = base64_decode($value, true);
+        return $raw !== false && strlen($raw) >= 19 && substr($raw, 16, 2) === '::';
     }
 
 }

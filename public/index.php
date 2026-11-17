@@ -1,5 +1,12 @@
 <?php
 
+// ================================================================
+// OVERLOAD
+// ================================================================
+$f = __DIR__ . '/../src/capps/modules/core/overload.php';
+if (is_file($f)) require $f;
+unset($f);
+
 /**
  * Application Entry Point - Final Version
  *
@@ -115,6 +122,9 @@ try {
     // 2. Load configuration
     $configFile = $basePath . 'inc.localconf.php';
     if (!file_exists($configFile)) {
+        $configFile = $basePath . 'inc.localconf.example.php'; // fresh clone: local defaults
+    }
+    if (!file_exists($configFile)) {
         throw new \RuntimeException('Configuration file not found: ' . $configFile);
     }
     require_once $configFile;
@@ -126,6 +136,22 @@ try {
             throw new \RuntimeException("Required constant not defined: {$constant}");
         }
     }
+
+    // 3a. Config output: ?cbdebug=TOKEN&show_config=1 (before page cache, never cached)
+    // CONFIGURATION has no secrets; DATABASE, MAIL and keys are not shown
+    $dbgToken = (string)(CONFIGURATION['debug']['token'] ?? '');
+    if (isset($_GET['show_config']) && $dbgToken !== '' && hash_equals($dbgToken, (string)($_GET['cbdebug'] ?? ''))) {
+        header('Content-Type: text/plain; charset=utf-8');
+        print_r(CONFIGURATION);
+        foreach (['BASEURL', 'BASEDIR', 'SOURCEDIR', 'CAPPS', 'CUSTOM'] as $c) {
+            echo "\n{$c}: " . constant($c) . (is_dir(constant($c)) ? ' (exists)' : '');
+        }
+        exit;
+    }
+
+    // 3b. Page cache (optional, default off)
+    $cacheFile = $basePath . 'capps/modules/core/cache.php';
+    if (is_file($cacheFile)) require $cacheFile;
 
     // 4. Setup autoloader
     require_once CAPPS . 'modules/core/classes/CBAutoloader.php';
@@ -170,7 +196,12 @@ try {
         }
     }
 
-
+    // Debugger: only with token from CONFIGURATION['debug']['token']
+    $dbgToken = (string)(CONFIGURATION['debug']['token'] ?? '');
+    if ($dbgToken !== '' && hash_equals($dbgToken, (string)($_GET['cbdebug'] ?? ''))) {
+        define('CB_DEBUG', true);
+        \Capps\Modules\Core\Classes\CBDebugger::start();
+    }
 
     // 6. System attributes
     $coreArrSystemAttributes = ['seo_modrewrite' => '1'];
@@ -186,6 +217,7 @@ try {
         }
     }
     $objPlatformUser->setAttribute("user_email", $user_email);
+    CBDebugPoint('user geladen');
 
     // 8. Localization
     //require_once CAPPS . "modules/core/localization.php";
@@ -211,6 +243,7 @@ try {
         }
     }
     $coreArrRoute = $arrIDtmp;
+    CBDebugPoint('structure + route');
     //CBLog($coreArrRoute,"coreArrRoute"); exit;
 
     // 11. Run application (fully qualified class name)

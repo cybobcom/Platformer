@@ -659,6 +659,8 @@ function CBLog($data, string $message = ''): void
 /**
  * Set auth mode for current controller/view/api/cron
  * Called from within controller files to override the default.
+ * NOTE: CBCore reads this call as text BEFORE the include: write it as a single
+ * line at the start of a line with a literal string, e.g. CBAuth('public');
  *
  * Default: controller/ = secure, everything else = public
  *
@@ -1130,7 +1132,8 @@ if ( !function_exists("generatePreview") ) {
 //				  $strComado = "$path -density 72 ".$file."[0] -resize 50% ".$target.$strThumbName;
                     $strComado = "$path -density 72 -colorspace rgb -background white -alpha remove ".$file."[0] -resize 50% ".$target.$strThumbName;
                     // DEV -verbose
-                    $strComado = "$path -verbose -density 72 -colorspace rgb -background white -alpha remove ".$file."[0] -resize 50% ".$target.$strThumbName;
+                    // SECURITY: escapeshellarg, file names must not inject shell commands
+                    $strComado = "$path -verbose -density 72 -colorspace rgb -background white -alpha remove ".escapeshellarg($file."[0]")." -resize 50% ".escapeshellarg($target.$strThumbName);
 
                     //echo "<pre>"; print_r( $strComado ); echo "</pre>";
 
@@ -1197,7 +1200,7 @@ if ( !function_exists("generatePreview") ) {
             $thumbnail = BASEDIR.'../cache/thumbnail.jpg';
 
 
-            shell_exec('ffmpeg -i "'.$video.'" -ss '.$time.' -vframes 1 -filter:v scale="280:-1" -f image2 -y "'.$thumbnail.'" 2>&1');
+            shell_exec('ffmpeg -i '.escapeshellarg($video).' -ss '.$time.' -vframes 1 -filter:v scale="280:-1" -f image2 -y '.escapeshellarg($thumbnail).' 2>&1'); // SECURITY: escapeshellarg
 
 
             $data = file_get_contents($thumbnail);
@@ -1420,4 +1423,8 @@ function human_filesize($bytes, $dec = 2) {
     $factor = floor((strlen($bytes) - 1) / 3);
 
     return sprintf("%.{$dec}f", $bytes / pow(1024, $factor)) . ' ' . @$size[$factor];
+}
+
+function CBDebugPoint(string $name): void {
+    if (defined('CB_DEBUG')) \Capps\Modules\Core\Classes\CBDebugger::point($name);
 }

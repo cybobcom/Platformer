@@ -318,12 +318,16 @@ class CBParser {
                 //CBLog($sid);
                 //CBLog(array_keys($coreArrSortedStructure));
 
-
+/*
                 if ( in_array($sid,array_keys($coreArrSortedStructure)) ) {
                     $objCStmp = CBinitObject("Structure",$sid);
                     //CBLog($objCStmp);
                     if ( $objCStmp->getAttribute("addressgroups") != "" ) {
                         $arrCSgroups = explode(",", $objCStmp->getAttribute("addressgroups"));
+                        */
+                if ( in_array($sid,array_keys($coreArrSortedStructure)) ) {
+                    if ( ($dictStructure['addressgroups'] ?? "") != "" ) {
+                        $arrCSgroups = explode(",", $dictStructure['addressgroups']);
                         if (count($arrCSgroups) > 0) { // only if at least one group is available, otherwise the content is global
                             $boolChecked = FALSE;
 //                        if ( is_array($_SESSION['user_groups']) ) {
@@ -510,7 +514,7 @@ class CBParser {
                         }else {
                             if ( strstr($str,"###page_") ) { // 09-12-07 bob : performance optimization
                                 if ( is_array($vG) ) continue;
-                                $vG = stripslashes($vG);
+                                $vG = stripslashes((string)$vG); // NULL columns (PHP 8.1+)
                                 if ( ($arrAttributes['modify_length']??"") != "" || ( isset($arrAttributes['level'.$level.'_modify_length']) && $arrAttributes['level'.$level.'_modify_length'] != "") ) {
                                     $intLength = $arrAttributes['modify_length'];
                                     if ( $arrAttributes['level'.$level.'_modify_length'] != "") $intLength = $arrAttributes['level'.$level.'_modify_length'];
@@ -822,10 +826,13 @@ class CBParser {
             foreach ( $_REQUEST as $run=>$value ) {
 
                 //
+                if ( is_array($value) ) continue;
                 if ( function_exists("protect_form") ) $value = protect_form($value);
 
                 // frontend_message
                 if ( $run == "frontend_message" ) $value = stripslashes($value);
+                // SECURITY: escape request values (XSS) and # % [ so they cannot form placeholders (###x###, %%x%%, [[x]], @[x])
+                $value = strtr(htmlspecialchars((string)$value, ENT_QUOTES | ENT_HTML5, 'UTF-8'), ['#' => '&#35;', '%' => '&#37;', '[' => '&#91;']);
 
                 //
                 $strTemplate = str_replace('###request_'.$run.'###',$value,$strTemplate);
