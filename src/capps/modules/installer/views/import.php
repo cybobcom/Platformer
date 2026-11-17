@@ -2,11 +2,29 @@
 
 use Capps\Modules\Installer\Classes\CBImport;
 
+// Installer only on localhost (debug mode) or with $arrConf['installer'] = true in inc.localconf.php
+if (!defined('DEBUG_MODE') && empty(CONFIGURATION['installer'])) {
+    header('Location: ' . BASEURL);
+    exit;
+}
+
 $importer = new CBImport();
 $modules  = $importer->scanModules();
 
 $schemaLog  = [];
 $cmsMessage = '';
+
+// SECURITY: install_path only from the scanned modules (it is used for include)
+$validPaths = array_column($modules, 'install_path');
+// SECURITY: CSRF token (CBCore injects it into every form)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !hash_equals((string)($_SESSION['csrf_token'] ?? ''), (string)($_POST['csrf_token'] ?? ''))) {
+    http_response_code(403);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !in_array($_POST['install_path'] ?? '', $validPaths, true)) {
+    $_POST['action'] = '';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 

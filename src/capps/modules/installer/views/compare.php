@@ -2,10 +2,22 @@
 
 use Capps\Modules\Installer\Classes\CBCompare;
 
+// Installer only on localhost (debug mode) or with $arrConf['installer'] = true in inc.localconf.php
+if (!defined('DEBUG_MODE') && empty(CONFIGURATION['installer'])) {
+    header('Location: ' . BASEURL);
+    exit;
+}
+
 $comparer = new CBCompare();
 
 $result = null;
 $targetUrl = '';
+
+// SECURITY: CSRF token (CBCore injects it into every form)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !hash_equals((string)($_SESSION['csrf_token'] ?? ''), (string)($_POST['csrf_token'] ?? ''))) {
+    http_response_code(403);
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $targetUrl = trim($_POST['target_url'] ?? '');

@@ -14,6 +14,7 @@ use Capps\Modules\Database\Classes\CBDatabase;
  * Datenbank ab. Kein persistentes Hash-Tracking - alles wird zur Laufzeit
  * verglichen (information_schema fuer Tabellen, template-Match fuer CMS).
  */
+// NOTE: admin tool: DB errors (getLastError) are shown on purpose (exception to the rule), needed to see why a schema change failed
 class CBImport
 {
     private CBDatabase $db;
@@ -158,8 +159,9 @@ class CBImport
             foreach ($missingTables as $table) {
                 if (preg_match('/-- Table: ' . preg_quote($table, '/') . '\n(.*?);\s*(?=-- Table:|$)/s', $sqlContent, $m)) {
                     $createSql = str_ireplace('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS', $m[1]);
-                    $this->db->query($createSql);
-                    $log[] = "Tabelle '{$table}' angelegt.";
+                    $log[] = $this->db->query($createSql) === false
+                        ? "FEHLER: Tabelle '{$table}' nicht angelegt: " . $this->db->getLastError()
+                        : "Tabelle '{$table}' angelegt.";
                 } else {
                     $log[] = "FEHLER: CREATE-Statement fuer '{$table}' nicht in schema.sql gefunden.";
                 }
@@ -172,8 +174,9 @@ class CBImport
                 continue; // wurde gerade erst angelegt, keine ADD COLUMN noetig
             }
             foreach ($info['add'] as $col => $def) {
-                $this->db->query("ALTER TABLE `{$table}` ADD COLUMN `{$col}` {$def}");
-                $log[] = "Spalte '{$table}.{$col}' hinzugefuegt.";
+                $log[] = $this->db->query("ALTER TABLE `{$table}` ADD COLUMN `{$col}` {$def}") === false
+                    ? "FEHLER: Spalte '{$table}.{$col}' nicht hinzugefuegt: " . $this->db->getLastError()
+                    : "Spalte '{$table}.{$col}' hinzugefuegt.";
             }
         }
 
@@ -188,14 +191,12 @@ class CBImport
                     continue;
                 }
                 $newDef = $diff[$table]['modify'][$col]['new'];
-                $this->db->query("ALTER TABLE `{$table}` MODIFY COLUMN `{$col}` {$newDef}");
-                $log[] = "Spalte '{$table}.{$col}' geaendert.";
+                $log[] = $this->db->query("ALTER TABLE `{$table}` MODIFY COLUMN `{$col}` {$newDef}") === false
+                    ? "FEHLER: Spalte '{$table}.{$col}' nicht geaendert: " . $this->db->getLastError()
+                    : "Spalte '{$table}.{$col}' geaendert.";
             }
         }
 
-        if ($this->db->getLastError()) {
-            $log[] = 'DB-Fehler: ' . $this->db->getLastError();
-        }
 
         return $log;
     }

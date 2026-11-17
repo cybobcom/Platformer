@@ -112,6 +112,9 @@ $arrConf['cache'] = [
 // debug
 $arrConf['debug'] = ['token' => '', 'slow_ms' => 2]; // '' = off; set a long random token to use ?cbdebug=TOKEN
 
+// installer (import/export of modules): always on localhost, on servers only if true
+$arrConf['installer'] = false;
+
 // Define convenience constants from cbinit vendors
 define('CAPPS', $arrConf['cbinit']['vendors']['capps']['path']);
 define('ADMIN', $arrConf['cbinit']['vendors']['admin']['path']);

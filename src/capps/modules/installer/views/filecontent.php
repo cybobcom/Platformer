@@ -1,5 +1,11 @@
 <?php
 
+// Installer only on localhost (debug mode) or with $arrConf['installer'] = true in inc.localconf.php
+if (!defined('DEBUG_MODE') && empty(CONFIGURATION['installer'])) {
+    header('Location: ' . BASEURL);
+    exit;
+}
+
 global $arrConf;
 
 $moduleKey = $_GET['module'] ?? '';

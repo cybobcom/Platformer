@@ -10,6 +10,7 @@ use Capps\Modules\Database\Classes\CBDatabase;
  * Export-Logik fuer Modul-Tabellen.
  * Erzeugt install/schema.sql + install/schema.php fuer ein Modul.
  */
+// NOTE: admin tool: DB errors (getLastError) are shown on purpose (exception to the rule), needed to see why a schema change failed
 class CBExport
 {
     private CBDatabase $db;
@@ -163,6 +164,7 @@ class CBExport
         $queue = [$rootStructureId];
         while ($queue) {
             $currentId = array_shift($queue);
+            if (in_array($currentId, $collectedIds, true)) continue; // parent cycle in the data: no endless loop
             $collectedIds[] = $currentId;
             foreach ($childrenByParent[$currentId] ?? [] as $childId) {
                 $queue[] = $childId;

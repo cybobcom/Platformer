@@ -83,7 +83,6 @@ class MCP
         ");
 
         if (!$success) {
-            error_log("CBMcp: Failed to create mcp_token column - " . $this->db->getLastError());
             return false;
         }
 
@@ -114,7 +113,6 @@ class MCP
         ", [$token, $addressUid]);
 
         if (!$success) {
-            error_log("CBMcp: Failed to generate token - " . $this->db->getLastError());
             return false;
         }
 
@@ -311,7 +309,6 @@ class MCP
 
         $config = json_decode($json, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log("CBMcp: Invalid JSON in {$path} - " . json_last_error_msg());
             return null;
         }
 
@@ -365,16 +362,15 @@ class MCP
         // Execute operation
         try {
             return match($operation) {
-                'list' => $this->opList($className, $data),
-                'get' => $this->opGet($className, $data),
+                'list' => $this->opList($className, $data, $config),
+                'get' => $this->opGet($className, $data, $config),
                 'create' => $this->opCreate($className, $data, $config),
                 'update' => $this->opUpdate($className, $data, $config),
                 'delete' => $this->opDelete($className, $data),
                 default => $this->error("Unknown operation: {$operation}")
             };
         } catch (\Exception $e) {
-            error_log("CBMcp: Operation failed - " . $e->getMessage());
-            return $this->error("Operation failed: " . $e->getMessage());
+            return $this->error("Operation failed");
         }
     }
 
@@ -397,9 +393,7 @@ class MCP
         foreach ($fields as $fieldName => $value) {
             // Check if field exists in config
             if (!isset($fieldConfig[$fieldName])) {
-                // Field not in config - allow by default (KISS)
-                $allowedFields[$fieldName] = $value;
-                continue;
+                continue; // SECURITY: only fields listed in mcp.json are writable (e.g. never mcp_token)
             }
 
             // Check field-level roles
@@ -411,10 +405,8 @@ class MCP
             } elseif ($this->hasAccess($fieldRoles)) {
                 // User has required role
                 $allowedFields[$fieldName] = $value;
-            } else {
-                // User doesn't have permission - skip field silently
-                error_log("CBMcp: Field '{$fieldName}' filtered for user (insufficient permissions)");
             }
+            // else: no permission - skip field silently
         }
 
         return $allowedFields;
@@ -423,14 +415,26 @@ class MCP
     /**
      * Operation: List
      */
-    private function opList(string $className, array $data): array
+    private function opList(string $className, array $data, array $config): array
     {
         $obj = CBinitObject($className);
 
-        $conditions = $data['conditions'] ?? [];
-        $options = $data['options'] ?? [];
+        // SECURITY: no raw SQL options (select, join, rawWhere); no filter/search/order on hidden fields
+        $conditions = (array)($data['conditions'] ?? []);
+        $options = array_intersect_key((array)($data['options'] ?? []), array_flip(['order', 'direction', 'limit', 'search']));
+        $usedFields = array_merge(
+            array_keys($conditions),
+            (array)($options['search']['fields'] ?? []),
+            explode('|', (string)(is_string($options['order'] ?? null) ? $options['order'] : ''))
+        );
+        foreach ($usedFields as $field) {
+            if ($this->isHiddenField((string)$field)) {
+                return $this->error("Access denied - field '{$field}' not allowed");
+            }
+        }
 
         $results = $obj->findAll($conditions, $options);
+        $results = array_map(fn($row) => $this->filterOutput($row, $config), $results);
 
         return $this->success([
             'items' => $results,
@@ -441,7 +445,7 @@ class MCP
     /**
      * Operation: Get
      */
-    private function opGet(string $className, array $data): array
+    private function opGet(string $className, array $data, array $config): array
     {
         $id = $data['id'] ?? null;
         if (!$id) {
@@ -455,7 +459,7 @@ class MCP
         }
 
         return $this->success([
-            'item' => $obj->arrAttributes
+            'item' => $this->filterOutput($obj->arrAttributes, $config)
         ]);
     }
 
@@ -481,7 +485,7 @@ class MCP
         $newId = $obj->create($filteredFields);
 
         if (!$newId) {
-            return $this->error("Create failed: " . $obj->getLastError());
+            return $this->error("Create failed"); // SECURITY: no DB error details to the client
         }
 
         return $this->success([
@@ -511,6 +515,11 @@ class MCP
             return $this->error("Object not found");
         }
 
+        // SECURITY: non-admins may only update their own address record
+        if ($className === 'Address' && !$this->hasAccess(['admin']) && (string)$id !== (string)($this->currentUser['address_uid'] ?? '')) {
+            return $this->error("Access denied - own record only");
+        }
+
         // Filter fields by permissions
         $filteredFields = $this->filterFieldsByPermissions($fields, $config);
 
@@ -521,7 +530,7 @@ class MCP
         $success = $obj->update($filteredFields, $id);
 
         if (!$success) {
-            return $this->error("Update failed: " . $obj->getLastError());
+            return $this->error("Update failed"); // SECURITY: no DB error details to the client
         }
 
         return $this->success([
@@ -550,13 +559,33 @@ class MCP
         $success = $obj->delete($id);
 
         if (!$success) {
-            return $this->error("Delete failed: " . $obj->getLastError());
+            return $this->error("Delete failed"); // SECURITY: no DB error details to the client
         }
 
         return $this->success([
             'id' => $id,
             'message' => 'Deleted successfully'
         ]);
+    }
+
+    // SECURITY: never readable/searchable via the API (tokens, passwords, encrypted values)
+    private const HIDDEN_FIELDS = ['password', 'mcp_token', 'mcp_token_created', 'verification_uid', 'encrypted'];
+
+    private function isHiddenField(string $field): bool
+    {
+        return in_array($field, self::HIDDEN_FIELDS, true) || str_starts_with($field, 'encrypted_');
+    }
+
+    /** Output filter: hidden fields and fields with roles (mcp.json) the user does not have */
+    private function filterOutput(array $row, array $config): array
+    {
+        foreach (array_keys($row) as $field) {
+            $roles = $config['fields'][$field]['roles'] ?? [];
+            if ($this->isHiddenField((string)$field) || (!empty($roles) && !$this->hasAccess($roles))) {
+                unset($row[$field]);
+            }
+        }
+        return $row;
     }
 
     /**

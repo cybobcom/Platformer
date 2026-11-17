@@ -17,6 +17,11 @@ class CBCompare
     {
         $local = (new CBStatus())->generateSnapshot();
 
+        // SECURITY: only http(s), no file:// or php://
+        if (!preg_match('#^https?://#i', $targetUrl)) {
+            return ['ok' => false, 'message' => 'Nur http(s)-URLs erlaubt.'];
+        }
+
         $remoteRaw = @file_get_contents($targetUrl);
         if ($remoteRaw === false) {
             return ['ok' => false, 'message' => 'Konnte Ziel-URL nicht laden: ' . $targetUrl];

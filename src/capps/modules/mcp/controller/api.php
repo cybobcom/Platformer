@@ -99,12 +99,6 @@ try {
         }
     }
 
-    if (preg_match('/Bearer\s+(.+)/i', $authHeader, $matches)) {
-        $token = trim($matches[1]);
-    }
-
-
-
     // Validate token
     if (empty($token)) {
         http_response_code(401);
@@ -229,17 +223,11 @@ try {
     echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {
-    // Log error
-    error_log("MCP API Error: " . $e->getMessage());
-    error_log("Stack trace: " . $e->getTraceAsString());
-
     // Return error response
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => 'Internal server error',
-        //'message' => (getenv('ENVIRONMENT') === 'development') ? $e->getMessage() : 'An error occurred'
-        'message' => $e->getMessage()
+        'error' => 'Internal server error' // SECURITY: no exception details to the client
 
     ]);
 }
