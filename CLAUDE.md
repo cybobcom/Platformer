@@ -37,6 +37,7 @@ Platformer is a PHP-based modular CMS/application framework running on MAMP with
    - Debug mode only on localhost (`SERVER_NAME` localhost/127.0.0.1), everywhere else production
    - Session (httponly, samesite, strict mode)
    - Loads `core/functions.php` and the configuration
+   - Trusted hosts: `$arrConf['trusted_hosts']` (e.g. `['www.example.com', '*.example.com']`, `[]` = all): other Host headers get 400
    - `?cbdebug=TOKEN&show_config=1`: config output (token from `CONFIGURATION['debug']['token']`)
    - Page cache (`core/cache.php`, optional), autoloader, module namespaces
    - Loads user (`$objPlatformUser`), structure (`$coreArrSortedStructure`), routes (`$coreArrRoute`)
@@ -45,7 +46,7 @@ Platformer is a PHP-based modular CMS/application framework running on MAMP with
 2. **Configuration**: `src/inc.localconf.php` (git-ignored; fallback `src/inc.localconf.example.php`)
    - Only sets values: constants (BASEURL, BASEDIR, SOURCEDIR, ...), `CONFIGURATION`, `DATABASE`, `ENCRYPTION_KEY32`
    - No output, no auth rules, no error_reporting
-   - SECURITY: on servers replace DB credentials, `ENCRYPTION_KEY32` and the debug token
+   - SECURITY: on servers replace DB credentials, `ENCRYPTION_KEY32` and the debug token, set `trusted_hosts`
 
 3. **Application**: `src/capps/modules/core/classes/CBCore.php`
    - Request routing (page or script route), auth check, security headers

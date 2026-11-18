@@ -1,4 +1,6 @@
 <?php
+
+CBAuth('console'); // console users (group "console")
 //echo "TODO Dashboard Console";
 
 
@@ -20,11 +22,11 @@ $arrCondition = array();
 $arrCondition["deleted"] = "NOT 1";
 
 
-$selection = " FIND_IN_SET('$user_email', owner) OR FIND_IN_SET('$user_email', admins) OR FIND_IN_SET('$user_email', editors) ";
+// SECURITY: e-mail via placeholders (users can edit their own e-mail)
+$selection = " FIND_IN_SET(?, owner) OR FIND_IN_SET(?, admins) OR FIND_IN_SET(?, editors) ";
+$arrSelectionParams = [$user_email, $user_email, $user_email];
 
-
-
-$arrIDs = $objTmp->getAllEntries("name","ASC",$arrCondition,$selection);
+$arrIDs = $objTmp->getAllEntries("name","ASC",$arrCondition,$selection,"",NULL,NULL,$arrSelectionParams);
 //echo "$selection<pre>"; print_r($arrIDs); echo "</pre>";exit;
 
 

@@ -139,7 +139,25 @@ try {
         }
     }
 
-    // 3a. Config output: ?cbdebug=TOKEN&show_config=1 (before page cache, never cached)
+    // 3a. Trusted hosts: BASEURL is built from the Host header, reject foreign hosts (host header injection)
+    $trustedHosts = CONFIGURATION['trusted_hosts'] ?? [];
+    if ($trustedHosts) {
+        $host = strtolower(preg_replace('/:\d+$/', '', (string)($_SERVER['HTTP_HOST'] ?? '')));
+        $isTrusted = false;
+        foreach ($trustedHosts as $pattern) {
+            $pattern = strtolower($pattern);
+            if ($host === $pattern || (str_starts_with($pattern, '*.') && str_ends_with($host, substr($pattern, 1)))) {
+                $isTrusted = true;
+                break;
+            }
+        }
+        if (!$isTrusted) {
+            http_response_code(400);
+            exit('Invalid host');
+        }
+    }
+
+    // 3b. Config output: ?cbdebug=TOKEN&show_config=1 (before page cache, never cached)
     // CONFIGURATION has no secrets; DATABASE, MAIL and keys are not shown
     $dbgToken = (string)(CONFIGURATION['debug']['token'] ?? '');
     if (isset($_GET['show_config']) && $dbgToken !== '' && hash_equals($dbgToken, (string)($_GET['cbdebug'] ?? ''))) {
@@ -151,7 +169,7 @@ try {
         exit;
     }
 
-    // 3b. Page cache (optional, default off)
+    // 3c. Page cache (optional, default off)
     $cacheFile = $basePath . 'capps/modules/core/cache.php';
     if (is_file($cacheFile)) require $cacheFile;
 

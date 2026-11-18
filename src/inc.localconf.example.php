@@ -115,6 +115,9 @@ $arrConf['debug'] = ['token' => '', 'slow_ms' => 2]; // '' = off; set a long ran
 // installer (import/export of modules): always on localhost, on servers only if true
 $arrConf['installer'] = false;
 
+// trusted hosts: domains this site may be called with, e.g. ['www.example.com', 'example.com', '*.example.com'] ([] = all, local)
+$arrConf['trusted_hosts'] = [];
+
 // Define convenience constants from cbinit vendors
 define('CAPPS', $arrConf['cbinit']['vendors']['capps']['path']);
 define('ADMIN', $arrConf['cbinit']['vendors']['admin']['path']);
