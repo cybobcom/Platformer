@@ -1,0 +1,16 @@
+{
+    "name": "cybobcom/platformer",
+    "description": "Simple modular PHP CMS framework (KISS, zero dependencies)",
+    "type": "project",
+    "license": "MIT",
+    "homepage": "https://github.com/cybobcom/Platformer",
+    "authors": [
+        { "name": "cybob", "email": "info@cybob.com" }
+    ],
+    "require": {
+        "php": ">=8.0"
+    },
+    "archive": {
+        "exclude": [".idea", ".claude", "cache"]
+    }
+}

@@ -7,12 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
-- Enhanced caching mechanisms
-- REST API endpoints
-- GraphQL support
-- Admin dashboard improvements
-- Multi-language support
+## [3.2.0] - 2026-11-18
+
+### Added
+- `src/capps/VERSION`, dashboard shows the version and "Update verfügbar" (GitHub, checked daily)
+- Override layers `src/admin`, `src/agent`, `src/custom` (priority custom > agent > admin > capps), never overwritten by updates
+- `CBCore::resolveTemplatePath()`: CMS template paths are searched in all vendors
+- Trusted hosts (`$arrConf['trusted_hosts']`)
+- MCP API: content/structure modules, XML field wildcards, page routes
+- Installer: enable on servers via `$arrConf['installer']`, status with token
+
+### Changed
+- Admin modules (`cms`, `dashboard`, `tools`, console login) moved to `src/capps/modules`
+- Production mode by default, debug only on localhost
+- Previews work without ffmpeg/exec
+
+### Security
+- Access defaults via `CBAuth` (views/controller: group admin)
+- Login hardening (lockout, new session id, `hash_equals`)
+- SQL injection and XSS fixes, CSRF checks
+- MCP API: no raw SQL options, hidden fields, only configured fields writable
+- `SECURITY.md` rewritten
+
+### Removed
+- Dead code and unused XML files
+- `error_log` calls in application code
 
 ## [3.1.0] - 2025-01-21
 
@@ -173,13 +192,7 @@ We use [Semantic Versioning](https://semver.org/):
    # Migrate settings from backup
    ```
 
-3. **Database Schema**:
-   ```bash
-   # Run migration scripts (if provided)
-   mysql -u root -p platformer < migrations/2.x_to_3.0.sql
-   ```
-
-4. **Code Updates**:
+3. **Code Updates**:
    - Update to modern API:
      ```php
      // Old
@@ -202,7 +215,7 @@ We use [Semantic Versioning](https://semver.org/):
      public function process(array $data): bool { }
      ```
 
-5. **Testing**: Thoroughly test all functionality
+4. **Testing**: Thoroughly test all functionality
 
 ## Migration Tools
 
@@ -213,27 +226,17 @@ Version 3.x includes a compatibility layer for legacy code:
 - Migrate to new API before 4.0.0 release
 - See demo `04-legacy-compat.php` for migration guide
 
-### Automated Migration
-
-```bash
-# Find legacy API usage
-grep -r "getAttribute" src/
-grep -r "getAllEntries" src/
-
-# Use provided migration script (if available)
-php tools/migrate-api.php
-```
-
 ## Support
 
 - **Documentation**: See README.md and CLAUDE.md
-- **Issues**: [GitHub Issues](https://github.com/yourusername/platformer/issues)
+- **Issues**: [GitHub Issues](https://github.com/cybobcom/Platformer/issues)
 - **Security**: See SECURITY.md
 - **Contributing**: See CONTRIBUTING.md
 
 ---
 
-[Unreleased]: https://github.com/yourusername/platformer/compare/v3.1.0...HEAD
-[3.1.0]: https://github.com/yourusername/platformer/compare/v3.0.0...v3.1.0
-[3.0.0]: https://github.com/yourusername/platformer/compare/v2.5.0...v3.0.0
-[2.5.0]: https://github.com/yourusername/platformer/releases/tag/v2.5.0
+[Unreleased]: https://github.com/cybobcom/Platformer/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/cybobcom/Platformer/compare/v3.1.0...v3.2.0
+[3.1.0]: https://github.com/cybobcom/Platformer/compare/v3.0.0...v3.1.0
+[3.0.0]: https://github.com/cybobcom/Platformer/compare/v2.5.0...v3.0.0
+[2.5.0]: https://github.com/cybobcom/Platformer/releases/tag/v2.5.0

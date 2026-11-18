@@ -19,15 +19,20 @@ A PHP-based modular CMS/application framework with a custom MVC-like architectur
 - **PHP**: >= 8.0
 - **MySQL/MariaDB**: >= 5.7 / 10.2
 - **Apache/Nginx**: Web server
-- **Composer**: (optional) For dependency management
 
 ### Installation
 
-1. **Clone the repository**:
+1. **Get the code** (git or Composer):
    ```bash
-   git clone https://github.com/yourusername/platformer.git
-   cd platformer
+   git clone https://github.com/cybobcom/Platformer.git
+   cd Platformer
    ```
+   or (optional, no dependencies are installed):
+   ```bash
+   composer create-project cybobcom/platformer Platformer dev-main
+   cd Platformer
+   ```
+   Updates are not done via `composer update`: replace `src/capps` (see CLAUDE.md).
 
 2. **Create database**:
    ```bash
@@ -205,7 +210,7 @@ $results = $user->findAll(
 
 ### Interactive Demos
 
-Explore the database layer with 5 interactive demos:
+Explore the database layer with 3 demos (may not reflect the latest API):
 
 ```bash
 # Import demo database
@@ -213,11 +218,10 @@ mysql -u root -p platformer < src/capps/modules/database/tests/demo-database.sql
 
 # Run demos
 cd src/capps/modules/database/demo
-php 01-basic-usage.php      # Basic operations (5 min)
-php 02-xml-fields.php        # XML fields (10 min)
-php 03-crud-operations.php   # Full CRUD (15 min)
-php 04-legacy-compat.php     # Legacy API (10 min)
-php 05-custom-class.php      # Custom classes (15 min)
+cp config.example.php config.php   # adjust DB settings
+php 01-quickstart.php
+php 02-xml-fields.php
+php 03-advanced.php
 
 # Or access via browser
 http://platformer.local/src/capps/modules/database/demo/
@@ -306,13 +310,6 @@ $columns = $obj->getColumns();
 
 ## Testing
 
-### Unit Tests
-
-```bash
-# Run PHPUnit tests (if configured)
-./vendor/bin/phpunit
-```
-
 ### Manual Testing
 
 ```bash
@@ -392,55 +389,18 @@ chown -R www-data:www-data public/data/
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-### Coding Standards
-
-- Follow PSR-12 coding style
-- Use type hints (PHP 8.0+)
-- Write PHPDoc comments
-- Add unit tests for new features
-- Keep methods small and focused
-
-## Changelog
-
-### Version 3.1 (Current)
-- ✅ Simplified database layer (2 standalone classes)
-- ✅ Auto-timestamps support
-- ✅ Query helpers (count, exists, first)
-- ✅ Soft delete support
-- ✅ Bulk operations (insertBatch)
-- ✅ Transaction support
-- ✅ XSS protection for XML fields
-- ✅ Interactive demo suite
-
-### Version 3.0
-- ✅ Production-ready release
-- ✅ KISS principle refactoring
-- ✅ Removed external dependencies
-- ✅ Enhanced security
+See [CONTRIBUTING.md](CONTRIBUTING.md). Changes: see [CHANGELOG.md](CHANGELOG.md) (current version in `src/capps/VERSION`).
 
 ## License
 
-[Your License Here - e.g., MIT, GPL, Proprietary]
+MIT, see [LICENSE](LICENSE). Bundled third-party libraries (Bootstrap, jQuery, Vue.js, Adminer, ...): see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Support
 
-- **Documentation**: See CLAUDE.md and demo suite
-- **Issues**: [GitHub Issues](https://github.com/yourusername/platformer/issues)
-- **Email**: [your-email@example.com]
-
-## Acknowledgments
-
-- Built with PHP and MySQL
-- Inspired by modern PHP frameworks
-- Demo suite with interactive examples
-- Comprehensive documentation
+- **Documentation**: CLAUDE.md, SECURITY.md
+- **Issues**: [GitHub Issues](https://github.com/cybobcom/Platformer/issues)
+- **Email**: info@cybob.com
 
 ---
 
-**Made with ❤️ by [Your Name/Team]**
+**Made with ❤️ by cybob**
