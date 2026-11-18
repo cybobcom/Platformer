@@ -54,7 +54,17 @@ Platformer is a PHP-based modular CMS/application framework running on MAMP with
 
 ### Module Structure
 
-Modules are located in vendor folders under `src/` (`src/capps/modules/` core, `src/custom/modules/` customizations, also `src/admin/modules/`, `src/agent/modules/`):
+Modules are located in vendor folders under `src/`:
+
+- `src/capps/` = **Platformer core**, all modules incl. `cms`, `dashboard`, `tools` (Adminer), `console` (login). Updated as a whole, version in `src/capps/VERSION`
+- `src/admin/`, `src/agent/`, `src/custom/` = **override layers of the instance** (DEMO content in the repo, never overwritten by updates). Priority: custom (400) > agent (300) > admin (200) > capps (100)
+- Override = same path as in capps, e.g. `src/admin/modules/dashboard/views/main.php` wins over `src/capps/modules/dashboard/views/main.php`. Works for direct calls and for views embedded via the CMS (`CBCore::resolveTemplatePath()` searches `modules/...` of DB template paths in all vendors)
+- Overrides keep the `CBAuth(...)` line of the original; compare with the capps original after updates
+
+**Release**: raise the version in `src/capps/VERSION` (e.g. `3.2.1`) and push; the admin dashboard compares it with GitHub once a day and shows "Update verfügbar".
+
+**Update an instance**: replace `src/capps` (+ `public/index.php` if changed); check the instance with `cache/check-instance.sh` (local helper, not in git): delete unchanged old copies in `src/admin`/`src/agent`, review CHANGED files.
+
 
 ```
 modules/

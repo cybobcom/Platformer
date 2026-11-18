@@ -471,7 +471,7 @@ class CBCore
             return "";
         }
 
-        $fullPath = BASEDIR . ltrim($templatePath, '/');
+        $fullPath = $this->resolveTemplatePath($templatePath);
 
         if (!file_exists($fullPath)) {
             return "";
@@ -637,13 +637,35 @@ class CBCore
             return "";
         }
 
-        $fullPath = BASEDIR . ltrim($templatePath, '/');
+        $fullPath = $this->resolveTemplatePath($templatePath);
 
         if (!file_exists($fullPath)) {
             return "";
         }
 
         return file_get_contents($fullPath);
+    }
+
+    /**
+     * Template path from the DB, e.g. "../src/admin/modules/cms/views/main.php":
+     * "modules/..." is searched in all vendors by priority (custom > agent > admin > capps).
+     * So modules can move between vendors (old DB paths keep working) and instances can override them.
+     */
+    private function resolveTemplatePath(string $templatePath): string
+    {
+        $fullPath = BASEDIR . ltrim($templatePath, '/');
+        if (!preg_match('#(?:^|/)src/[A-Za-z0-9_]+/(modules/.+)$#', $templatePath, $m)) {
+            return $fullPath;
+        }
+
+        $vendors = CONFIGURATION['cbinit']['vendors'] ?? [];
+        uasort($vendors, fn($a, $b) => ($b['priority'] ?? 0) <=> ($a['priority'] ?? 0));
+        foreach ($vendors as $vendor) {
+            if (!($vendor['enabled'] ?? true)) continue;
+            $path = rtrim($vendor['path'] ?? '', '/') . '/' . $m[1];
+            if (is_file($path)) return $path;
+        }
+        return $fullPath;
     }
 
     /**
