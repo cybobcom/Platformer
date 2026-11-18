@@ -1,0 +1,112 @@
+{
+  "enabled": true,
+  "class": "Structure",
+  "label": "Seiten",
+  "synonyms": [
+    "Webseiten",
+    "Pages",
+    "Seitenstruktur"
+  ],
+  "description": "Seiten verwalten mit Feld-Level Permissions",
+  "operations": {
+    "list": {
+      "roles": []
+    },
+    "get": {
+      "roles": []
+    },
+    "create": {
+      "roles": [
+        "admin",
+        "user"
+      ]
+    },
+    "update": {
+      "roles": [
+        "admin",
+        "user"
+      ]
+    },
+    "delete": {
+      "roles": [
+        "admin"
+      ]
+    }
+  },
+  "fields": {
+    "name": {
+      "type": "string",
+      "roles": [],
+      "label": "Name / Titel der Seite"
+    },
+    "template": {
+      "type": "string",
+      "roles": [],
+      "label": "Template"
+    },
+    "parent_id": {
+      "type": "integer",
+      "roles": [],
+      "label": "Elternseite (parent_id)"
+    },
+    "sorting": {
+      "type": "integer",
+      "roles": [],
+      "label": "Sortierung"
+    },
+    "type": {
+      "type": "string",
+      "roles": [],
+      "label": "Typ"
+    },
+    "visible": {
+      "type": "boolean",
+      "roles": [],
+      "label": "In Navigation sichtbar"
+    },
+    "language_id": {
+      "type": "integer",
+      "roles": [],
+      "label": "Sprache"
+    },
+    "date_start": {
+      "type": "string",
+      "roles": [],
+      "label": "Anzeigen ab"
+    },
+    "date_end": {
+      "type": "string",
+      "roles": [],
+      "label": "Anzeigen bis"
+    },
+    "data_*": {
+      "type": "string",
+      "roles": [],
+      "label": "XML-Felder data_<name>"
+    },
+    "media_*": {
+      "type": "string",
+      "roles": [],
+      "label": "XML-Felder media_<name>"
+    },
+    "settings_*": {
+      "type": "string",
+      "roles": [],
+      "label": "XML-Felder settings_<name>"
+    },
+    "active": {
+      "type": "boolean",
+      "roles": [
+        "admin"
+      ],
+      "label": "Aktiv (nur Admin)"
+    },
+    "addressgroups": {
+      "type": "string",
+      "roles": [
+        "admin"
+      ],
+      "label": "Nutzergruppen (nur Admin)"
+    }
+  }
+}

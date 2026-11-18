@@ -242,7 +242,7 @@ if ( $_REQUEST['id'] != "" ) {
 
                         //
                         //alert(JSON.stringify(response));
-                        dictItem.mcp_token = response.data
+                        this.dictItem.mcp_token = response.data
 
 
                     })

@@ -384,20 +384,25 @@ class MCP
     private function filterFieldsByPermissions(array $fields, array $config): array
     {
         if (!isset($config['fields'])) {
-            return $fields; // No field restrictions
+            // No field restrictions, but never tokens/encrypted values (password only via a listed field)
+            return array_filter($fields, fn($f) => !$this->isHiddenField((string)$f), ARRAY_FILTER_USE_KEY);
         }
 
         $allowedFields = [];
         $fieldConfig = $config['fields'];
 
         foreach ($fields as $fieldName => $value) {
-            // Check if field exists in config
-            if (!isset($fieldConfig[$fieldName])) {
+            // Field listed in mcp.json, or XML field via wildcard "data_*", "media_*", "settings_*"
+            $configKey = isset($fieldConfig[$fieldName]) ? $fieldName : null;
+            if ($configKey === null && preg_match('/^(data|media|settings)_/', (string)$fieldName, $m) && isset($fieldConfig[$m[1] . '_*'])) {
+                $configKey = $m[1] . '_*';
+            }
+            if ($configKey === null) {
                 continue; // SECURITY: only fields listed in mcp.json are writable (e.g. never mcp_token)
             }
 
             // Check field-level roles
-            $fieldRoles = $fieldConfig[$fieldName]['roles'] ?? [];
+            $fieldRoles = $fieldConfig[$configKey]['roles'] ?? [];
 
             if (empty($fieldRoles)) {
                 // No role restrictions
@@ -488,6 +493,11 @@ class MCP
             return $this->error("Create failed"); // SECURITY: no DB error details to the client
         }
 
+        // Pages: generate the route (URL) like the CMS does (structure/controller/insertItem.php)
+        if ($className === 'Structure') {
+            CBinitObject('Route')->generateStructureRoute((string)$newId);
+        }
+
         return $this->success([
             'id' => $newId,
             'message' => 'Created successfully'
@@ -531,6 +541,11 @@ class MCP
 
         if (!$success) {
             return $this->error("Update failed"); // SECURITY: no DB error details to the client
+        }
+
+        // Pages: update the route (name may have changed), like structure/controller/updateItem.php
+        if ($className === 'Structure') {
+            CBinitObject('Route')->generateStructureRoute((string)$id);
         }
 
         return $this->success([

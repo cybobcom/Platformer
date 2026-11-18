@@ -2,6 +2,11 @@
   "enabled": true,
   "class": "Address",
   "label": "Adressen",
+  "synonyms": [
+    "Kontakte",
+    "Personen",
+    "Addresses"
+  ],
   "description": "Adressverwaltung mit Feld-Level Permissions",
   "operations": {
     "list": {
@@ -11,13 +16,21 @@
       "roles": []
     },
     "create": {
-      "roles": ["admin", "user"]
+      "roles": [
+        "admin",
+        "user"
+      ]
     },
     "update": {
-      "roles": ["admin", "user"]
+      "roles": [
+        "admin",
+        "user"
+      ]
     },
     "delete": {
-      "roles": ["admin"]
+      "roles": [
+        "admin"
+      ]
     }
   },
   "fields": {
@@ -63,22 +76,30 @@
     },
     "login": {
       "type": "string",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "label": "Login (nur Admin)"
     },
     "password": {
       "type": "string",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "label": "Passwort (nur Admin)"
     },
     "addressgroups": {
       "type": "string",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "label": "Gruppen (nur Admin)"
     },
     "active": {
       "type": "boolean",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "label": "Aktiv (nur Admin)"
     }
   }

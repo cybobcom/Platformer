@@ -1,0 +1,117 @@
+{
+  "enabled": true,
+  "class": "Content",
+  "label": "Inhalte",
+  "synonyms": [
+    "Artikel",
+    "Content",
+    "Beiträge"
+  ],
+  "description": "Inhalte (Elemente einer Seite) verwalten mit Feld-Level Permissions",
+  "operations": {
+    "list": {
+      "roles": []
+    },
+    "get": {
+      "roles": []
+    },
+    "create": {
+      "roles": [
+        "admin",
+        "user"
+      ]
+    },
+    "update": {
+      "roles": [
+        "admin",
+        "user"
+      ]
+    },
+    "delete": {
+      "roles": [
+        "admin"
+      ]
+    }
+  },
+  "fields": {
+    "name": {
+      "type": "string",
+      "roles": [],
+      "label": "Name / Titel des Elements"
+    },
+    "teaser": {
+      "type": "string",
+      "roles": [],
+      "label": "Teaser"
+    },
+    "content": {
+      "type": "string",
+      "roles": [],
+      "label": "Inhalt"
+    },
+    "structure_id": {
+      "type": "integer",
+      "roles": [],
+      "label": "Seite (structure_id)"
+    },
+    "template": {
+      "type": "string",
+      "roles": [],
+      "label": "Template"
+    },
+    "sorting": {
+      "type": "integer",
+      "roles": [],
+      "label": "Sortierung"
+    },
+    "type": {
+      "type": "string",
+      "roles": [],
+      "label": "Typ"
+    },
+    "language_id": {
+      "type": "integer",
+      "roles": [],
+      "label": "Sprache"
+    },
+    "date_start": {
+      "type": "string",
+      "roles": [],
+      "label": "Anzeigen ab"
+    },
+    "date_end": {
+      "type": "string",
+      "roles": [],
+      "label": "Anzeigen bis"
+    },
+    "data_*": {
+      "type": "string",
+      "roles": [],
+      "label": "XML-Felder data_<name>"
+    },
+    "media_*": {
+      "type": "string",
+      "roles": [],
+      "label": "XML-Felder media_<name>"
+    },
+    "settings_*": {
+      "type": "string",
+      "roles": [],
+      "label": "XML-Felder settings_<name>"
+    },
+    "active": {
+      "type": "boolean",
+      "roles": [
+        "admin"
+      ],
+      "label": "Aktiv (nur Admin)"
+    },
+    "addressgroups": {
+      "type": "string",
+      "roles": [
+        "admin"
+      ],
+      "label": "Nutzergruppen (nur Admin)"
+    }
+  }
+}
