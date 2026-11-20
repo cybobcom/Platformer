@@ -710,6 +710,13 @@ class CBObject
                     $whereClauses[] = "`{$key}` IN (" . implode(',', $placeholders) . ")";
                     $params = array_merge($params, $value);
                 }
+                // data_/media_/settings_ fields → XML LIKE (positive value)
+                elseif (str_starts_with($key, 'data_') || str_starts_with($key, 'media_') || str_starts_with($key, 'settings_')) {
+                    $xmlField = strstr($key, '_', true); // data, media or settings
+                    $fieldName = substr($key, strlen($xmlField) + 1);
+                    $whereClauses[] = "`{$xmlField}` LIKE ?";
+                    $params[] = "%<{$fieldName}>" . $this->cdata((string)$value) . "</{$fieldName}>%";
+                }
                 // Normal =
                 else {
                     $whereClauses[] = "`{$key}` = ?";
@@ -838,10 +845,27 @@ class CBObject
             // String "NULL" → IS NULL
             if ($value === "NULL" || $value === 'NULL') {
                 $whereClauses[] = "`{$key}` IS NULL";
+            } elseif (is_string($value) && str_starts_with($value, 'NOT ')) {
+                $cleanValue = substr($value, 4);
+                if (str_starts_with($key, 'data_') || str_starts_with($key, 'media_') || str_starts_with($key, 'settings_')) {
+                    $xmlField = strstr($key, '_', true);
+                    $fieldName = substr($key, strlen($xmlField) + 1);
+                    $whereClauses[] = "`{$xmlField}` NOT LIKE ?";
+                    $params[] = "%<{$fieldName}>" . $this->cdata($cleanValue) . "</{$fieldName}>%";
+                } else {
+                    $whereClauses[] = "(`{$key}` NOT LIKE ? OR `{$key}` IS NULL)";
+                    $params[] = $cleanValue;
+                }
             } elseif (is_array($value)) {
                 $placeholders = array_fill(0, count($value), '?');
                 $whereClauses[] = "`{$key}` IN (" . implode(',', $placeholders) . ")";
                 $params = array_merge($params, $value);
+            } elseif (str_starts_with($key, 'data_') || str_starts_with($key, 'media_') || str_starts_with($key, 'settings_')) {
+                // data_/media_/settings_ fields → XML LIKE (positive value)
+                $xmlField = strstr($key, '_', true);
+                $fieldName = substr($key, strlen($xmlField) + 1);
+                $whereClauses[] = "`{$xmlField}` LIKE ?";
+                $params[] = "%<{$fieldName}>" . $this->cdata((string)$value) . "</{$fieldName}>%";
             } else {
                 $whereClauses[] = "`{$key}` = ?";
                 $params[] = $value;
@@ -874,10 +898,27 @@ class CBObject
                 // String "NULL" → IS NULL
                 if ($value === "NULL" || $value === 'NULL') {
                     $whereClauses[] = "`{$key}` IS NULL";
+                } elseif (is_string($value) && str_starts_with($value, 'NOT ')) {
+                    $cleanValue = substr($value, 4);
+                    if (str_starts_with($key, 'data_') || str_starts_with($key, 'media_') || str_starts_with($key, 'settings_')) {
+                        $xmlField = strstr($key, '_', true);
+                        $fieldName = substr($key, strlen($xmlField) + 1);
+                        $whereClauses[] = "`{$xmlField}` NOT LIKE ?";
+                        $params[] = "%<{$fieldName}>" . $this->cdata($cleanValue) . "</{$fieldName}>%";
+                    } else {
+                        $whereClauses[] = "(`{$key}` NOT LIKE ? OR `{$key}` IS NULL)";
+                        $params[] = $cleanValue;
+                    }
                 } elseif (is_array($value)) {
                     $placeholders = array_fill(0, count($value), '?');
                     $whereClauses[] = "`{$key}` IN (" . implode(',', $placeholders) . ")";
                     $params = array_merge($params, $value);
+                } elseif (str_starts_with($key, 'data_') || str_starts_with($key, 'media_') || str_starts_with($key, 'settings_')) {
+                    // data_/media_/settings_ fields → XML LIKE (positive value)
+                    $xmlField = strstr($key, '_', true);
+                    $fieldName = substr($key, strlen($xmlField) + 1);
+                    $whereClauses[] = "`{$xmlField}` LIKE ?";
+                    $params[] = "%<{$fieldName}>" . $this->cdata((string)$value) . "</{$fieldName}>%";
                 } else {
                     $whereClauses[] = "`{$key}` = ?";
                     $params[] = $value;
