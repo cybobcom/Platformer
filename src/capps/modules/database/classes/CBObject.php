@@ -1014,6 +1014,18 @@ class CBObject
     }
 
     /**
+     * @deprecated Legacy (portal): first result as object, otherwise an empty instance (never null).
+     * @see first()
+     */
+    public function initObjectWithFirstEntry($order = null, $direction = null, $arrCondition = [], $selection = null, $result = "", $limit = null)
+    {
+        $rows  = $this->getAllEntries($order, $direction, $arrCondition, $selection, '', 1);
+        $class = get_class($this);
+        $id    = $rows[0][$this->strPrimaryKey] ?? '';
+        return new $class($id !== '' ? $id : null, $this->strTable, $this->strPrimaryKey, $this->dbConfig);
+    }
+
+    /**
      * Sort by data_*, media_*, settings_* XML fields
      */
     private function sortDataParameter(array $arrInput, string $strDataField, string $strDirection = "ASC"): array
@@ -1429,6 +1441,7 @@ class CBObject
     /**
      * Encrypt a plaintext value (AES-256-CBC)
      * Returns plaintext unchanged if no key configured
+     * Returns plaintext unchanged if no key configurednot
      */
     public function encryptValue(string $plaintext): string
     {
