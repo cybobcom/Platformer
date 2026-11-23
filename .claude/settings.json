@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./src/inc.localconf.php)",
+      "Read(./src/inc.localconf.php.*)",
+      "Edit(./src/inc.localconf.php)",
+      "Edit(./src/inc.localconf.php.*)"
+    ]
+  }
+}
