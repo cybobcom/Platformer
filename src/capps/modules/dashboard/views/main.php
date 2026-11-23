@@ -19,4 +19,7 @@ $hasUpdate = $versionLocal !== '' && preg_match('/^\d+\.\d+\.\d+$/', $versionRem
         · <span class="text-danger"><b>Update verfügbar: <?php echo htmlspecialchars($versionRemote); ?></b></span>
         (<a href="https://github.com/cybobcom/Platformer" target="_blank" rel="noopener">GitHub</a>)
     <?php endif; ?>
+    <?php if (!defined('DEBUG_MODE') && empty(CONFIGURATION['trusted_hosts'])): // SECURITY: servers should restrict the Host header ?>
+        <div class="text-danger mt-2"><b>Hinweis:</b> <code>$arrConf['trusted_hosts']</code> ist in der inc.localconf.php leer, bitte die Domains der Seite eintragen.</div>
+    <?php endif; ?>
 </div>

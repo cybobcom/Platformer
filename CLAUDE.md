@@ -34,7 +34,7 @@ Platformer is a PHP-based modular CMS/application framework running on MAMP with
 
 1. **Entry Point**: `public/index.php`
    - Overload protection (`core/overload.php`, optional)
-   - Debug mode only on localhost (`SERVER_NAME` localhost/127.0.0.1), everywhere else production
+   - Debug mode only on localhost (request from `REMOTE_ADDR` 127.0.0.1/::1), everywhere else production
    - Session (httponly, samesite, strict mode)
    - Loads `core/helpers.php`, the configuration and per vendor an optional `<vendor>/helpers.php`
    - Trusted hosts: `$arrConf['trusted_hosts']` (e.g. `['www.example.com', '*.example.com']`, `[]` = all): other Host headers get 400
@@ -43,7 +43,7 @@ Platformer is a PHP-based modular CMS/application framework running on MAMP with
    - Loads user (`$objPlatformUser`), structure (`$coreArrSortedStructure`), routes (`$coreArrRoute`)
    - Runs `CBCore`
 
-2. **Configuration**: `src/inc.localconf.php` (git-ignored; fallback `src/inc.localconf.example.php`)
+2. **Configuration**: `src/inc.localconf.php` (git-ignored; fallback `src/inc.localconf.example.php` on localhost only, servers without it: error page)
    - Only sets values: constants (BASEURL, BASEDIR, SOURCEDIR, ...), `CONFIGURATION`, `DATABASE`, `ENCRYPTION_KEY32`
    - No output, no auth rules, no error_reporting
    - SECURITY: on servers replace DB credentials, `ENCRYPTION_KEY32` and the debug token, set `trusted_hosts`
@@ -464,11 +464,11 @@ public function berechneAlter(DateTime $geburtsdatum): int
 - **Encryption**: `encrypted_*` / `$arrEncryptedFields` use AES-256-CBC (no MAC); without `ENCRYPTION_KEY32` values are stored as plaintext
 - **Errors**: `getLastError()` contains query and params: logs only, never output to users
 - **Output**: request values in JS via `json_encode($v, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP)` (no own quotes), in HTML via `htmlspecialchars`; CSS classes/ids filtered to `[A-Za-z0-9_-]`. CMS content from the DB (HTML) is output without escaping on purpose
-- **Files**: deliver only via a DB record (never a path from the request), realpath below `data/`
-- **Uploads/renames**: target folders from the request only via realpath below `data/media/`; extensions only from the whitelist (upload AND rename, keep `uploadFile.php`/`updateItem.php` in sync); `public/data/media/.htaccess` blocks scripts
+- **Files**: deliver only via a DB record (never a path from the request), realpath below `data/`; `data/media/` is public (directly reachable by URL, `downloadItem` is no protection), protected files belong in `SECUREDIR` (`websecure/`) with their own delivery script
+- **Uploads/renames**: target folders from the request only via realpath below `data/media/` or `SECUREDIR`; only `$overwriteGroup` (default admin, top of `uploadFile.php`) may overwrite existing files, others get a unique `_UT` name; extensions only from the whitelist (upload AND rename, keep `uploadFile.php`/`updateItem.php` in sync); `public/data/media/.htaccess` blocks scripts
 - **Shell**: `escapeshellarg` for all arguments; ffmpeg/ImageMagick/exec may be missing: fallback, never a fatal error
 - **Session Security**: httponly, samesite, strict mode; new session id on login and logout
-- **CSRF**: CBCore blocks cross-site POST/PUT/DELETE/PATCH to protected scripts centrally (not for `CBAuth('public')`); token injected into `<head>` and every `<form>`; check it on state-changing POSTs (`CBController::validateCSRF()` or `hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])`); the page cache stores a placeholder
+- **CSRF**: CBCore blocks cross-site POST/PUT/DELETE/PATCH to protected scripts centrally (not for `CBAuth('public')`); token injected into `<head>` and every `<form>`; check it on state-changing POSTs (`CBController::validateCSRF()` or `hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])`); the page cache stores a placeholder; `SameSite=Strict` (session cookie) is the main CSRF guard for GET: do not lower it to Lax, or state-changing GET controllers become vulnerable
 - **Loops over data** (tree, parents): always limited, broken data must not hang the site
 
 ### Performance Optimization
@@ -498,7 +498,7 @@ public function berechneAlter(DateTime $geburtsdatum): int
 
 ## Debugging
 
-**Debug Mode**: automatic on localhost (`SERVER_NAME` localhost/127.0.0.1): errors displayed. Everywhere else production: errors only in the PHP error log.
+**Debug Mode**: automatic on localhost (request from `REMOTE_ADDR` 127.0.0.1/::1): errors displayed. Everywhere else production: errors only in the PHP error log.
 
 **CBDebugger**: `?cbdebug=TOKEN` (token in `CONFIGURATION['debug']['token']`, `''` = off)
 - Timings, queries (repeated/slow), memory, page cache status

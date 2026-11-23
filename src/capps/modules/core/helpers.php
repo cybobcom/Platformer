@@ -405,8 +405,9 @@ function checkIntersection(string $userGroups, string $requiredGroups): bool
         return true;
     }
 
-    $userGroupArray = explode(',', $userGroups);
-    $requiredGroupArray = explode(',', $requiredGroups);
+    // SECURITY: ignore empty entries ("admin," must not match a user without groups) and spaces
+    $userGroupArray = array_filter(array_map('trim', explode(',', $userGroups)), fn($v) => $v !== '');
+    $requiredGroupArray = array_filter(array_map('trim', explode(',', $requiredGroups)), fn($v) => $v !== '');
 
     return !empty(array_intersect($userGroupArray, $requiredGroupArray));
 }

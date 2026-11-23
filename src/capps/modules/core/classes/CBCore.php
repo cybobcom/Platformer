@@ -70,6 +70,9 @@ class CBCore
                 $_SESSION[PLATFORM_IDENTIFIER]['login_verified'] = '';
                 $_SESSION[PLATFORM_IDENTIFIER]['login_user_identifier'] = '';
                 unset($_SESSION[PLATFORM_IDENTIFIER]['last_activity']);
+                // SECURITY: also drop the already loaded user, otherwise this request still runs with his groups
+                $this->user = CBinitObject('Address');
+                $GLOBALS['objPlatformUser'] = $this->user;
             } else {
                 // Update last activity
                 $_SESSION[PLATFORM_IDENTIFIER]['last_activity'] = time();
@@ -472,8 +475,8 @@ class CBCore
             return true;
         }
 
-        $userGroups = $this->user->get('addressgroups');
-        return checkIntersection($userGroups, $requiredGroups);
+        $userGroups = (string)($this->user?->get('addressgroups') ?? '');
+        return checkIntersection($userGroups, (string)$requiredGroups);
     }
 
     /**
@@ -742,7 +745,9 @@ class CBCore
 
         $template = preg_replace('/###.*###/Us','',$template);
         */
-        $template = parseTemplate($template, [], "", true);
+        $template = parseTemplate($template, [], "", false);
+        // Remove unknown placeholders: only ###x###, other styles stay ([[...]] are often JS arrays, %% plain text)
+        $template = preg_replace('/###.*?###/s', '', $template);
 
         // CSRF: inject meta tag into <head> and hidden field into every <form>
         if (str_contains($template, '<head>') || str_contains($template, '<head ')) {

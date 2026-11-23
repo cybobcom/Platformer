@@ -35,7 +35,9 @@ if ( isset($_REQUEST["login"]) && $_REQUEST["login"] != "" && isset($_REQUEST["p
     $arrCondition["active"] = "1";
     $arrCondition["login"] = $_REQUEST["login"];
 
-    $arrResult = $objTmp->getAllEntries(NULL,NULL,$arrCondition);
+    // SECURITY: "NULL" and "NOT ..." have a special meaning in findAll() conditions: never accept them as login
+    $isPlainLogin = is_string($login) && $login !== "NULL" && !str_starts_with($login, "NOT ");
+    $arrResult = $isPlainLogin ? $objTmp->getAllEntries(NULL,NULL,$arrCondition) : [];
 
     // Compare password - supports both plaintext (legacy) and encrypted (new)
     if ( is_array($arrResult) && count($arrResult) > 0 && $arrResult[0]["address_uid"] != "" ) {

@@ -433,7 +433,9 @@ class MCP
             explode('|', (string)(is_string($options['order'] ?? null) ? $options['order'] : ''))
         );
         foreach ($usedFields as $field) {
-            if ($this->isHiddenField((string)$field)) {
+            // SECURITY: fields with roles (mcp.json) must not be filterable without that role (would leak values via counts)
+            $roles = $config['fields'][$field]['roles'] ?? [];
+            if ($this->isHiddenField((string)$field) || (!empty($roles) && !$this->hasAccess($roles))) {
                 return $this->error("Access denied - field '{$field}' not allowed");
             }
         }

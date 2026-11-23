@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.1] - 2026-11-23
+
+### Update notes for instances
+- `src/inc.localconf.php` must exist on servers (the example config is only used on localhost)
+- Set `$arrConf['trusted_hosts']` on servers (the dashboard shows a warning otherwise)
+- An `Address` override (custom/agent/admin) must extend `\Capps\Modules\Address\Classes\Address`
+- `core/functions.php` is now `core/helpers.php`; own global functions go into `<vendor>/helpers.php`
+
+### Added
+- `CBSecret()` + `SECRETS` in `inc.localconf.php` for API keys and tokens
+- `CBResponse('html'|'json')` to set the response type of a script
+- `$arrConf['session_timeout']` (default 1800 seconds)
+- Optional `<vendor>/helpers.php` for own global functions
+- Dashboard warning if `trusted_hosts` is empty on a server
+- Media upload: `$overwriteGroup` at the top of `uploadFile.php` (default admin)
+
+### Changed
+- Script routes (views, controller, api, interface, cron) closed by default (group admin), opened via `CBAuth()`
+- Debug mode detected via `REMOTE_ADDR` (127.0.0.1/::1) instead of `SERVER_NAME`
+- Fallback to `inc.localconf.example.php` on localhost only
+- `$objPlatformUser` is created via `CBinitObject()` (vendor overrides apply)
+- Media upload: targets below `data/media/` or `SECUREDIR`; extensions checked case-insensitive
+- Final placeholder cleanup removes only unknown `###x###` (`[[...]]`, `%%...%%`, `@[...]` stay, e.g. JS arrays)
+- `.htaccess`: `.well-known/` reachable again, existing files served with `[L]`
+
+### Security
+- Central CSRF check for cross-site POST/PUT/DELETE/PATCH (Sec-Fetch-Site/Origin, `trusted_hosts`)
+- Login: "NULL" and "NOT ..." are never accepted as login (findAll() special values)
+- Debug mode can no longer be enabled with a faked Host header
+- Servers without `inc.localconf.php` no longer run with the public dev key
+- `checkIntersection()`: empty entries and spaces ignored ("admin," no longer matches users without groups)
+- Session timeout: the already loaded user is dropped in the same request
+- Media upload: only `$overwriteGroup` may overwrite existing files, others get a unique `_UT` name
+- MCP API: fields with roles are not filterable/searchable/sortable without that role
+- `decryptValue()`: wrong key returns '' instead of the ciphertext
+- `.htaccess`: dotfiles and bak/sql/log files blocked
+
+### Removed
+- `medialibrary/controller/addDocument.php`, `insertItem.php` (legacy, used undefined `connectClass()`)
+
 ## [3.2.0] - 2026-11-18
 
 ### Added

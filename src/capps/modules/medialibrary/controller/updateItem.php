@@ -30,7 +30,7 @@ if ( $_REQUEST['uid'] != "" ) {
 
     // SECURITY: same extensions as uploadFile.php (keep in sync), e.g. no rename to .php
     $arrAdditionsAllow = array('gif','png','jpg','jpeg','pdf','txt','rtf','doc','docx','xls','xlsx','csv','ppt','pptx','pps','mp4','m4v','mpg','mpeg','mp3','m4a');
-    if ( !in_array(pathinfo($name_new, PATHINFO_EXTENSION), $arrAdditionsAllow, true) ) {
+    if ( !in_array(strtolower(pathinfo($name_new, PATHINFO_EXTENSION)), $arrAdditionsAllow, true) ) {
         echo "error"; exit;
     }
 

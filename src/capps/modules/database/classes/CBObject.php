@@ -1464,7 +1464,9 @@ class CBObject
         // the random binary IV may itself contain ':' or '::'.
         $raw = base64_decode($encoded);
         if (strlen($raw) < 19 || substr($raw, 16, 2) !== '::') return $encoded;
-        return openssl_decrypt(substr($raw, 18), 'AES-256-CBC', $key, 0, substr($raw, 0, 16)) ?: $encoded;
+        // SECURITY: wrong key → '' (never the ciphertext itself, it would work as password)
+        $plain = openssl_decrypt(substr($raw, 18), 'AES-256-CBC', $key, 0, substr($raw, 0, 16));
+        return $plain === false ? '' : $plain;
     }
 
     /**

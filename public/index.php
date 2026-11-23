@@ -26,7 +26,8 @@ $startMemory = memory_get_usage();
 // ================================================================
 
 // Debug only on local installations (MAMP), everything else = production
-$isProduction = !in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1'], true);
+// SECURITY: REMOTE_ADDR, not SERVER_NAME (SERVER_NAME comes from the Host header and can be faked)
+$isProduction = !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
 
 if ($isProduction) {
     ini_set('display_errors', '0');
@@ -123,8 +124,8 @@ try {
 
     // 2. Load configuration
     $configFile = $basePath . 'inc.localconf.php';
-    if (!file_exists($configFile)) {
-        $configFile = $basePath . 'inc.localconf.example.php'; // fresh clone: local defaults
+    if (!file_exists($configFile) && !$isProduction) {
+        $configFile = $basePath . 'inc.localconf.example.php'; // fresh clone: local defaults (SECURITY: never on servers, public dev key)
     }
     if (!file_exists($configFile)) {
         throw new \RuntimeException('Configuration file not found: ' . $configFile);
@@ -232,8 +233,8 @@ try {
     // 6. System attributes
     $coreArrSystemAttributes = ['seo_modrewrite' => '1'];
 
-    // 7. Load user (fully qualified class name)
-    $objPlatformUser = new \Capps\Modules\Address\Classes\Address($_SESSION[PLATFORM_IDENTIFIER]["login_user_identifier"] ?? "");
+    // 7. Load user (CBinitObject: vendor overrides apply)
+    $objPlatformUser = CBinitObject("Address", $_SESSION[PLATFORM_IDENTIFIER]["login_user_identifier"] ?? "");
 
     // Email validation
     $user_email = $objPlatformUser->getAttribute("login");

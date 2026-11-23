@@ -5,13 +5,15 @@
 RewriteEngine on
 
 # Security: never serve dotfiles (.env, .git, ...) or backup/dump/log files
+# .well-known/ stays reachable (Let's Encrypt, iOS/Android app links, security.txt)
+RewriteCond %{REQUEST_URI} !/\.well-known/
 RewriteRule (^|/)\. - [F,L]
 RewriteRule \.(bak|orig|swp|sql|log|ini|sh)$ - [F,L]
 
 # 1. Existing files and directories are served as they are
 RewriteCond %{REQUEST_FILENAME} -f [NC,OR]
 RewriteCond %{REQUEST_FILENAME} -d [NC]
-RewriteRule .* - [R=307,L]
+RewriteRule .* - [L]
 
 # 2. URLs ending in .html
 RewriteCond %{REQUEST_URI}  .*\.html.*$

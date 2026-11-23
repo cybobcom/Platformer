@@ -2,6 +2,10 @@
 
 CBAuth(''); // logged-in users may upload
 
+// Group that may overwrite existing files; all others always get a unique name (_UT).
+// Instances: copy this script to src/custom/modules/medialibrary/controller/ and change it there.
+$overwriteGroup = 'admin';
+
 ini_set('memory_limit','1256M');
 ini_set('memory_limit', -1);
 
@@ -68,10 +72,16 @@ if ( $target != "" ) {
 }
 
 
-// SECURITY: only below data/media/ (path comes from the request)
+// SECURITY: only below data/media/ or SECUREDIR (websecure/) (path comes from the request)
 $checkDir = realpath((string)$target);
-$mediaDir = realpath(BASEDIR . 'data/media');
-if ($checkDir === false || $mediaDir === false || ($checkDir !== $mediaDir && !str_starts_with($checkDir, $mediaDir . '/'))) {
+$isAllowedDir = false;
+foreach ([BASEDIR . 'data/media', defined('SECUREDIR') ? SECUREDIR : ''] as $allowedDir) {
+    $allowedDir = $allowedDir !== '' ? realpath($allowedDir) : false;
+    if ($checkDir !== false && $allowedDir !== false && ($checkDir === $allowedDir || str_starts_with($checkDir, $allowedDir . '/'))) {
+        $isAllowedDir = true;
+    }
+}
+if (!$isAllowedDir) {
     echo "error"; exit;
 }
 //debug_
@@ -116,7 +126,10 @@ if (isset($_FILES['uploaded_file'])) {
     $name = sanitizeFileName($name);
 
     $path_parts = pathinfo($name);
-    if ( stristr($_REQUEST["configuration"], "addUT") ) {
+    // SECURITY: only $overwriteGroup may overwrite existing files, everyone else gets a unique name
+    global $objPlatformUser;
+    $mayOverwrite = checkIntersection((string)($objPlatformUser?->get('addressgroups') ?? ''), $overwriteGroup);
+    if ( stristr((string)($_REQUEST["configuration"] ?? ""), "addUT") || !$mayOverwrite ) {
 //	if ( $_REQUEST["configuration"] == "addUT" ) {
         list($usec, $sec) = explode(" ", microtime());
         $usec = str_replace(".","",$usec);
@@ -126,7 +139,7 @@ if (isset($_FILES['uploaded_file'])) {
     }
 
     //
-    if ( !in_array($path_parts['extension'], $arrAdditionsAllow) ) {
+    if ( !in_array(strtolower($path_parts['extension'] ?? ''), $arrAdditionsAllow, true) ) {
         echo "error"; exit;
     }
 
@@ -185,7 +198,7 @@ if (isset($_FILES['uploaded_file'])) {
                 $intID = $obj->saveContentNew($arrSave);
                 //$intID = $arrSave['medialibrary_uid'];
 
-                if ( stristr($_REQUEST["configuration"], "returnJSON") ) {
+                if ( stristr((string)($_REQUEST["configuration"] ?? ""), "returnJSON") ) {
                     //
                     // json
                     //
