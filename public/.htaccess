@@ -1,32 +1,33 @@
 # ============================================================================
-# DEBUG VERSION - BLOCK 1 funktioniert ✅, teste jetzt BLOCK 2
+# Platformer routing
 # ============================================================================
 
 RewriteEngine on
 
-# DEBUG: Teste erstmal nur eine einfache Regel ✅
-RewriteRule ^test-simple$ index.php?CBroute=test-simple [L]
+# Security: never serve dotfiles (.env, .git, ...) or backup/dump/log files
+RewriteRule (^|/)\. - [F,L]
+RewriteRule \.(bak|orig|swp|sql|log|ini|sh)$ - [F,L]
 
-# BLOCK 1: File/Directory Check ✅ FUNKTIONIERT
+# 1. Existing files and directories are served as they are
 RewriteCond %{REQUEST_FILENAME} -f [NC,OR]
 RewriteCond %{REQUEST_FILENAME} -d [NC]
 RewriteRule .* - [R=307,L]
 
-# BLOCK 2: HTML URLs - JETZT TESTEN
+# 2. URLs ending in .html
 RewriteCond %{REQUEST_URI}  .*\.html.*$
 RewriteRule (.*)\.html&(.*)$    index.php?CBroute=$1&$2             [L]
 RewriteRule (.*)\.html$       index.php?CBroute=$1&%{QUERY_STRING}   [L]
 
-# BLOCK 3: URLs mit trailing slash - NOCH DEAKTIVIERT
- RewriteCond %{REQUEST_URI}  .*/.*$
- RewriteRule (.*)/&(.*)$        index.php?CBroute=$1&$2             [L]
- RewriteRule (.*)/$           index.php?CBroute=$1&%{QUERY_STRING}   [L]
+# 3. URLs with trailing slash
+RewriteCond %{REQUEST_URI}  .*/.*$
+RewriteRule (.*)/&(.*)$        index.php?CBroute=$1&$2             [L]
+RewriteRule (.*)/$           index.php?CBroute=$1&%{QUERY_STRING}   [L]
 
-# BLOCK 4: Alles andere ohne Dateiendung - NOCH DEAKTIVIERT
- RewriteCond %{REQUEST_URI} !\..+$
- RewriteRule ^(.*)$           index.php?CBroute=$1&%{QUERY_STRING}   [L]
+# 4. Everything else without file extension
+RewriteCond %{REQUEST_URI} !\..+$
+RewriteRule ^(.*)$           index.php?CBroute=$1&%{QUERY_STRING}   [L]
 
-# BLOCK 5: Fallback Regel - NOCH DEAKTIVIERT
- RewriteCond %{REQUEST_URI}  (.*)                   [OR]
- RewriteCond %{REQUEST_FILENAME}  (.*)
- RewriteRule .*     index.php?CBroute=$1&filename=$2            [L,QSA]
+# 5. Fallback
+RewriteCond %{REQUEST_URI}  (.*)                   [OR]
+RewriteCond %{REQUEST_FILENAME}  (.*)
+RewriteRule .*     index.php?CBroute=$1&filename=$2            [L,QSA]

@@ -27,7 +27,7 @@ class CBDebugger
         $fr = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 12);
         foreach ($fr as $i => $f) {
             $b = basename($f['file'] ?? '');
-            if ($b === '' || in_array($b, ['CBDatabase.php', 'CBObject.php', 'CBDebugger.php', 'functions.php'], true)) continue;
+            if ($b === '' || in_array($b, ['CBDatabase.php', 'CBObject.php', 'CBDebugger.php', 'helpers.php'], true)) continue;
             if (($fr[$i + 1]['function'] ?? '') === '__construct') continue; // skip parent::__construct
             $caller = $b . ':' . ($f['line'] ?? 0);
             break;

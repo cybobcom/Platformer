@@ -994,7 +994,7 @@ class CBObject
         ?string $direction = null,
         ?array $arrCondition = null,
         ?string $selection = null,
-        string $result = "",
+        ?string $result = "",
         ?int $limit = null,
         ?string $join = null,
         ?array $selectionParams = null // values for ? placeholders in $selection (use instead of embedding values)

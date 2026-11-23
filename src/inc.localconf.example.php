@@ -6,6 +6,7 @@
  * Used automatically if src/inc.localconf.php does not exist (fresh clone works at once).
  * Own setup: copy to inc.localconf.php (ignored by git) and change the values there.
  * SECURITY: on servers replace DB credentials, ENCRYPTION_KEY32 and debug token.
+ * inc.localconf.php is per environment: not in git, NEVER deployed (exclude it in the upload tool).
  */
 
 // ================================================================
@@ -31,7 +32,7 @@ $strPlatformIdentitier = realpath(dirname(__FILE__)) . "/";
 $arrConf['platform_identifier'] = md5(strtolower($strPlatformIdentitier)); // lowercase: same session for /Platformer/ and /platformer/ (macOS)
 
 // ================================================================
-// PATH DETECTION - Directly in localconf (NOT in functions.php!)
+// PATH DETECTION - Directly in localconf (NOT in helpers.php!)
 // ================================================================
 
 // BASEDIR: Project root (where public/ is)
@@ -56,7 +57,7 @@ if (isset($_SERVER['DOCUMENT_ROOT'])) {
 // We want: /src/
 $arrConf['sourcedir'] = dirname(__FILE__) . '/';
 
-// BASEURL: From functions.php (this one works correctly)
+// BASEURL: From helpers.php (this one works correctly)
 $arrConf['baseurl'] = detectBaseUrl();
 
 // Normalize all paths
@@ -118,6 +119,9 @@ $arrConf['installer'] = false;
 // trusted hosts: domains this site may be called with, e.g. ['www.example.com', 'example.com', '*.example.com'] ([] = all, local)
 $arrConf['trusted_hosts'] = [];
 
+// Auto-logout after inactivity, in seconds (default 1800 = 30 minutes)
+$arrConf['session_timeout'] = 1800;
+
 // Define convenience constants from cbinit vendors
 define('CAPPS', $arrConf['cbinit']['vendors']['capps']['path']);
 define('ADMIN', $arrConf['cbinit']['vendors']['admin']['path']);
@@ -167,3 +171,15 @@ define('MAIL', [
 
 define('ENCRYPTION_KEY32', '00000000000000000000000000000000'); // SECURITY: public dev key, replace on servers (32 chars)
 define('DEBUG_MAIL', '');
+
+// ================================================================
+// SECRETS: API keys, tokens and other access data (read with CBSecret('name'))
+// ================================================================
+// Never put these into code, CONFIGURATION, logs or chats. Local: test keys only, live keys only on the server.
+// This file is per environment: not in git, NEVER deployed (exclude it in your upload/deploy tool).
+
+define('SECRETS', [
+    'anthropic' => '',
+    'openai'    => '',
+    'gemini'    => '',
+]);

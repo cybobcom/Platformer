@@ -62,10 +62,10 @@ class CBCore
         $route = $this->parseRequest($_REQUEST, $_SERVER["REQUEST_URI"] ?? '');
         $this->detectResponseType($route);
 
-        // 2. Session timeout check (30 minutes inactivity)
+        // 2. Session timeout check (inactivity, CONFIGURATION['session_timeout'], default 30 minutes)
         if (!empty($_SESSION[PLATFORM_IDENTIFIER]['login_verified'])) {
             $lastActivity = $_SESSION[PLATFORM_IDENTIFIER]['last_activity'] ?? 0;
-            if (time() - $lastActivity > 1800) {
+            if (time() - $lastActivity > (int)(CONFIGURATION['session_timeout'] ?? 1800)) {
                 // Timeout - clear session
                 $_SESSION[PLATFORM_IDENTIFIER]['login_verified'] = '';
                 $_SESSION[PLATFORM_IDENTIFIER]['login_user_identifier'] = '';
@@ -105,11 +105,16 @@ class CBCore
     {
         // Check if this is a JSON endpoint
         if ($route['type'] === 'script') {
+            // A CBResponse('html'|'json') line in the script overrides the name-based default (read as text, see CBResponse())
+            if (!empty($route['script']) && preg_match('/^\s*CBResponse\(\s*[\'"](html|json)[\'"]\s*\)/m', (string)file_get_contents($route['script']), $m)) {
+                $this->responseType = $m[1];
+                return;
+            }
+
             $option = $route['option'] ?? '';
 
-            // JSON endpoints (controller/*Item.php typically return JSON)
-            if (str_contains($option, 'controller/') ||
-                str_contains($option, 'Item') ||
+            // JSON by name (convention): scripts with "Item" (insertItem, updateItem, ...) or "ajax" in the name
+            if (str_contains($option, 'Item') ||
                 str_contains($option, 'ajax') ||
                 isset($_REQUEST['format']) && $_REQUEST['format'] === 'json') {
                 $this->responseType = 'json';
@@ -324,10 +329,9 @@ class CBCore
             return $this->formatError("Script not found", 404);
         }
 
-        // Default auth mode: views/ and controller/ = group "admin", everything else (api, interface, cron) = public
-        $isProtected = (bool)preg_match('#/(controller|control|views|view)/#', $route['script']);
-        $GLOBALS['_cbRouteAuth'] = $isProtected ? 'secure' : 'public';
-        $GLOBALS['_cbRouteGroup'] = $isProtected ? 'admin' : '';
+        // Default auth mode for ALL script routes (views, controller, api, interface, cron): group "admin"
+        $GLOBALS['_cbRouteAuth'] = 'secure';
+        $GLOBALS['_cbRouteGroup'] = 'admin';
 
         // A CBAuth('...') line in the script overrides the default (read as text, see CBAuth())
         if (preg_match('/^\s*CBAuth\(\s*[\'"]([^\'"]*)[\'"]\s*\)/m', (string)file_get_contents($route['script']), $m)) {
@@ -350,6 +354,26 @@ class CBCore
                 }
                 header('Location: ' . BASEURL);
                 exit;
+            }
+        }
+
+        // SECURITY: CSRF - state-changing requests to protected scripts must come from our own site
+        // (browsers send Sec-Fetch-Site / Origin; no header at all = curl/cron, let through). CBAuth('public') scripts are exempt.
+        if ($GLOBALS['_cbRouteAuth'] === 'secure' && in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['POST', 'PUT', 'DELETE', 'PATCH'], true)) {
+            $fetchSite = $_SERVER['HTTP_SEC_FETCH_SITE'] ?? '';
+            $origin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '';
+            $foreign = false;
+            if ($fetchSite !== '') {
+                $foreign = !in_array($fetchSite, ['same-origin', 'none'], true);
+            } elseif ($origin !== '') {
+                $originHost = (string)parse_url($origin, PHP_URL_HOST);
+                $originPort = parse_url($origin, PHP_URL_PORT);
+                $allowed = array_merge([$_SERVER['HTTP_HOST'] ?? ''], CONFIGURATION['trusted_hosts'] ?? []);
+                $foreign = !in_array($originHost, $allowed, true)
+                    && !in_array($originHost . ($originPort ? ':' . $originPort : ''), $allowed, true);
+            }
+            if ($foreign) {
+                return $this->formatError('Cross-site request blocked', 403);
             }
         }
 
@@ -731,7 +755,7 @@ class CBCore
 
         // Auto-logout: inject JS timer before </body> (only for logged-in users)
         if (str_contains($template, '</body>') && !empty($_SESSION[PLATFORM_IDENTIFIER]['login_verified'] ?? '')) {
-            $timeoutMs = 1800 * 1000; // 30 minutes in ms
+            $timeoutMs = (int)(CONFIGURATION['session_timeout'] ?? 1800) * 1000; // seconds -> ms
             $logoutUrl = BASEURL . 'controller/address/doLogout/';
             $autoLogoutJs = "<script>
 (function() {

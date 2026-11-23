@@ -115,9 +115,9 @@ if (!is_dir($basePath)) {
 
 try {
     // 1. Load core functions
-    $functionsFile = $basePath . 'capps/modules/core/functions.php';
+    $functionsFile = $basePath . 'capps/modules/core/helpers.php';
     if (!file_exists($functionsFile)) {
-        throw new \RuntimeException('Functions file not found: ' . $functionsFile);
+        throw new \RuntimeException('Helpers file not found: ' . $functionsFile);
     }
     require_once $functionsFile;
 
@@ -191,6 +191,12 @@ try {
         $vendorPath = $vendorConfig['path'] ?? '';
         if (empty($vendorPath) || !is_dir($vendorPath)) {
             continue;
+        }
+
+        // Global functions of this vendor/instance (optional), e.g. custom/helpers.php: add only, no overriding
+        $vendorHelpers = rtrim($vendorPath, '/') . '/helpers.php';
+        if (is_file($vendorHelpers)) {
+            require_once $vendorHelpers;
         }
 
         // Find all module directories in this vendor

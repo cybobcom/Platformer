@@ -36,7 +36,7 @@ Platformer is a PHP-based modular CMS/application framework running on MAMP with
    - Overload protection (`core/overload.php`, optional)
    - Debug mode only on localhost (`SERVER_NAME` localhost/127.0.0.1), everywhere else production
    - Session (httponly, samesite, strict mode)
-   - Loads `core/functions.php` and the configuration
+   - Loads `core/helpers.php`, the configuration and per vendor an optional `<vendor>/helpers.php`
    - Trusted hosts: `$arrConf['trusted_hosts']` (e.g. `['www.example.com', '*.example.com']`, `[]` = all): other Host headers get 400
    - `?cbdebug=TOKEN&show_config=1`: config output (token from `CONFIGURATION['debug']['token']`)
    - Page cache (`core/cache.php`, optional), autoloader, module namespaces
@@ -72,7 +72,7 @@ modules/
 │   ├── classes/    # CBCore, CBParser, CBController, CBAutoloader, CBDebugger
 │   ├── cache.php   # Page cache (optional)
 │   ├── overload.php # Load shedding (optional)
-│   └── functions.php # Global functions
+│   └── helpers.php # Global functions
 ├── database/       # Database layer
 │   ├── classes/    # CBDatabase.php, CBObject.php (standalone)
 │   ├── demo/       # Demos (01-quickstart, 02-xml-fields, 03-advanced), may be outdated
@@ -110,7 +110,7 @@ modules/
 - Modern API: `create()`, `update()`, `save()`, `delete()`, `softDelete()`, `findAll()`, `first()`, `count()`, `exists()`, `insertBatch()`, `get()`, `set()`
 - Legacy API (deprecated, works): `getAttribute()`, `setAttribute()`, `getAllEntries()`, `saveContentNew()`, `saveContentUpdate()`, `deleteEntry()`, `saveObject()`
 
-**CBinitObject** (`src/capps/modules/core/functions.php`):
+**CBinitObject** (`src/capps/modules/core/helpers.php`):
 - Global function for dynamic object instantiation
 - Auto-detection: Class name becomes module name (e.g., `CBinitObject("User")` → `user/User`)
 - Vendor support: `CBinitObject("custom:User")` for custom modules
@@ -154,8 +154,7 @@ Checked by CBCore BEFORE the script is included (direct call via CBroute only):
 
 | In the script | Allowed for |
 |---|---|
-| nothing (views/, controller/) | group `admin` |
-| nothing (api/, interface/, cron/) | everyone |
+| nothing (views/, controller/, api/, interface/, cron/) | group `admin` |
 | `CBAuth('public');` | everyone |
 | `CBAuth('');` | logged-in users |
 | `CBAuth('xyz');` | group `xyz` (`capps_addressgroup.entity`) |
@@ -313,12 +312,13 @@ use Capps\Modules\Core\Classes\CBCore;
 
 ### Global Functions
 
-Key functions in `core/functions.php`:
+Key functions in `core/helpers.php` (instances add their own in `custom/helpers.php`, loaded automatically per vendor; add only, no overriding; never in `capps`):
 - `CBinitObject($class, $value = null)` - Dynamic object instantiation
 - `validateEmail($email)` - Email validation
 - `checkIntersection($arr1, $arr2)` - Check array intersection for permissions
 - `parseCBXML($xmlString)` - Parse CBXML format
 - `CBLog($data)` - Debug logging
+- `CBSecret($name, $default)` - read a secret (API key, token, access data) from `SECRETS`
 
 ### Coding Standards
 
@@ -457,6 +457,7 @@ public function berechneAlter(DateTime $geburtsdatum): int
 
 ### Security Considerations
 
+- **Secrets**: API keys and tokens live in `SECRETS` in `src/inc.localconf.php` (per environment, not in git, never deployed), read with `CBSecret('name')`, never in code, `CONFIGURATION`, logs or chats. **AI assistants must not read, print or edit `src/inc.localconf.php`**; ask the developer for values and use `CBSecret('name')` in code. Local = test keys only, live keys exist on the server only.
 - **SQL Injection**: Prepared statements for all values; identifiers via `validNames()`; `rawWhere` blocks request input embedded in the SQL text (safety net only)
 - **XSS**: `sanitizeXmlValue()` strips script/iframe/object/embed/applet, `on*` attributes and `javascript:` URLs from `data_`/`media_`/`settings_` values. This is a safety net only: **always escape on output** (`htmlspecialchars`)
 - **XML**: CDATA is split safely (`]]>`), invalid XML keys are skipped
@@ -467,7 +468,7 @@ public function berechneAlter(DateTime $geburtsdatum): int
 - **Uploads/renames**: target folders from the request only via realpath below `data/media/`; extensions only from the whitelist (upload AND rename, keep `uploadFile.php`/`updateItem.php` in sync); `public/data/media/.htaccess` blocks scripts
 - **Shell**: `escapeshellarg` for all arguments; ffmpeg/ImageMagick/exec may be missing: fallback, never a fatal error
 - **Session Security**: httponly, samesite, strict mode; new session id on login and logout
-- **CSRF**: token injected into `<head>` and every `<form>`; check it on state-changing POSTs (`CBController::validateCSRF()` or `hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])`); the page cache stores a placeholder
+- **CSRF**: CBCore blocks cross-site POST/PUT/DELETE/PATCH to protected scripts centrally (not for `CBAuth('public')`); token injected into `<head>` and every `<form>`; check it on state-changing POSTs (`CBController::validateCSRF()` or `hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])`); the page cache stores a placeholder
 - **Loops over data** (tree, parents): always limited, broken data must not hang the site
 
 ### Performance Optimization
